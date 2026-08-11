@@ -60,9 +60,15 @@ socket.on(
           rooms[roomId].creatorId = socket.id;
         }
 
-        const alreadyJoined = rooms[roomId].players.some((player) => player.id === socket.id);
-        if (!alreadyJoined) {
+        const existingPlayer = rooms[roomId].players.find(
+          (player) => player.id === socket.id || player.name === userName,
+        );
+
+        if (!existingPlayer) {
           rooms[roomId].players.push({ id: socket.id, name: userName, score: 0 });
+        } else if (existingPlayer.id !== socket.id) {
+          existingPlayer.id = socket.id;
+          existingPlayer.name = userName;
         }
 
         io.to(roomId).emit('room_data', rooms[roomId]);
