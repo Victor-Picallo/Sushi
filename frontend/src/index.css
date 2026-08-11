@@ -53,7 +53,7 @@
 }
 
 #root {
-  width: 1126px;
+  width: 100%;
   max-width: 100%;
   margin: 0 auto;
   text-align: center;
@@ -62,6 +62,18 @@
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 body {
@@ -131,6 +143,7 @@ body {
 
 .app-card {
   width: min(760px, 100%);
+  max-width: 100%;
   background: rgba(255, 255, 255, 0.98);
   border: 1px solid rgba(124, 58, 237, 0.14);
   box-shadow: 0 48px 140px rgba(15, 23, 42, 0.14);
@@ -318,6 +331,7 @@ body {
   letter-spacing: 0.25em;
   color: #7c3aed;
   text-transform: none;
+  word-break: break-all;
 }
 
 .room-header h2,
@@ -431,6 +445,7 @@ body {
   font-size: 2.6rem;
   letter-spacing: 0.02em;
   margin: 0.15rem 0 0;
+  overflow-wrap: anywhere;
 }
 
 .room-label {
@@ -443,6 +458,7 @@ body {
   margin: 0.35rem 0 0;
   color: #334155;
   font-size: 1rem;
+  overflow-wrap: anywhere;
 }
 
 .status-chip {
@@ -534,6 +550,8 @@ body {
 .podium-card {
   max-width: 420px;
   width: 100%;
+  max-height: min(90vh, 100%);
+  overflow-y: auto;
   background: #ffffff;
   border-radius: 28px;
   padding: 2rem;
@@ -592,6 +610,7 @@ body {
 .podium-name {
   font-weight: 700;
   color: #111827;
+  overflow-wrap: anywhere;
 }
 
 .podium-score {
@@ -660,6 +679,10 @@ body {
   will-change: transform, box-shadow, background-color;
 }
 
+.player-row > div:first-child {
+  min-width: 0;
+}
+
 .player-row.player-moved {
   animation: overtake 0.9s ease both;
   background: linear-gradient(180deg, #f4f3ff 0%, #eef2ff 100%);
@@ -711,12 +734,15 @@ body {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   color: #0f172a;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .player-actions {
   display: flex;
   align-items: center;
   gap: 0.85rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .player-score {
@@ -766,6 +792,11 @@ body {
 @media (max-width: 768px) {
   .app-shell {
     padding: 1.5rem 1rem;
+  }
+
+  .modal-card,
+  .podium-card {
+    max-width: 100%;
   }
 
   .app-card,
@@ -832,11 +863,16 @@ body {
     padding: 1rem;
   }
 
+  .player-row > div:first-child {
+    width: 100%;
+  }
+
   .player-actions {
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
     gap: 0.75rem;
+    width: 100%;
   }
 
   .player-score {
@@ -874,6 +910,7 @@ body {
   .app-card.room-card {
     padding: 1rem;
     border-radius: 24px;
+    margin: 0;
   }
 
   .room-header {
@@ -901,8 +938,19 @@ body {
     font-size: 0.95rem;
   }
 
+  .form-grid,
+  .player-list,
+  .room-status-row,
+  .podium-list,
+  .podium-card,
+  .empty-state {
+    width: 100%;
+    max-width: 100%;
+  }
+
   .player-row {
     padding: 0.9rem 0.9rem;
+    width: 100%;
   }
 
   .player-actions {
