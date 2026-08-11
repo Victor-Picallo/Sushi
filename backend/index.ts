@@ -66,9 +66,16 @@ socket.on(
 
         if (!existingPlayer) {
           rooms[roomId].players.push({ id: socket.id, name: userName, score: 0 });
-        } else if (existingPlayer.id !== socket.id) {
-          existingPlayer.id = socket.id;
+        } else {
+          if (existingPlayer.id !== socket.id) {
+            existingPlayer.id = socket.id;
+          }
+          // Keep display name in sync if the same player reconnects or edits their name.
           existingPlayer.name = userName;
+        }
+
+        if (creatorToken && rooms[roomId].creatorToken === creatorToken) {
+          rooms[roomId].creatorName = userName;
         }
 
         io.to(roomId).emit('room_data', rooms[roomId]);

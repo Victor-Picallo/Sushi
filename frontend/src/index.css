@@ -328,7 +328,9 @@ body {
   margin: 1rem auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 2rem;
-  letter-spacing: 0.25em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  letter-spacing: 0.14em;
   color: #7c3aed;
   text-transform: none;
   word-break: break-all;
@@ -338,6 +340,8 @@ body {
 .player-score,
 .player-rank {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
 }
 
 .modal-close-button {
