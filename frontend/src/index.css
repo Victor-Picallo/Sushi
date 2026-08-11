@@ -764,8 +764,8 @@ body {
 }
 
 @media (max-width: 768px) {
-  .button-row {
-    grid-template-columns: 1fr;
+  .app-shell {
+    padding: 1.5rem 1rem;
   }
 
   .app-card,
@@ -773,25 +773,42 @@ body {
     padding: 1.5rem;
   }
 
+  .app-header p {
+    max-width: 100%;
+  }
+
+  .button-row {
+    grid-template-columns: 1fr;
+  }
+
+  .button,
+  .finish-button,
+  .modal-close-button {
+    width: 100%;
+    max-width: 100%;
+  }
+
   .room-status-row {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
     margin: 1rem 0 0;
     padding: 1rem;
     width: 100%;
+    max-width: 100%;
   }
 
   .room-status-action {
-    justify-content: stretch;
+    justify-content: center;
   }
 
-  .finish-button {
+  .room-status-block {
     width: 100%;
-    max-width: 100%;
   }
 
   .room-header {
     flex-direction: column;
     align-items: stretch;
+    padding: 1rem;
   }
 
   .back-link {
@@ -800,17 +817,26 @@ body {
     top: auto;
     margin-bottom: 1rem;
     align-self: flex-start;
+    width: auto;
+  }
+
+  .room-header > div {
+    width: 100%;
+    max-width: none;
   }
 
   .player-row {
     flex-direction: column;
     align-items: stretch;
-    gap: 1rem;
+    gap: 0.85rem;
+    padding: 1rem;
   }
 
   .player-actions {
     flex-wrap: wrap;
     justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
   }
 
   .player-score {
@@ -821,30 +847,45 @@ body {
   .score-buttons {
     width: 100%;
     justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .small-button {
+    flex: 1;
+    min-width: 0;
+    padding: 0.9rem 1rem;
+  }
+
+  .empty-state {
+    padding: 1.5rem 1rem;
+  }
+
+  .podium-card {
+    padding: 1.5rem;
   }
 }
 
 @media (max-width: 480px) {
   .app-shell {
-    padding: 1.5rem 0.75rem;
+    padding: 1rem 0.75rem;
   }
 
   .app-card,
   .app-card.room-card {
-    padding: 1.25rem;
-    border-radius: 28px;
+    padding: 1rem;
+    border-radius: 24px;
   }
 
   .room-header {
-    padding: 1rem;
+    padding: 1rem 0.75rem;
   }
 
   .room-header h2 {
-    font-size: 2.2rem;
+    font-size: 2rem;
   }
 
-  .room-subtitle,
   .room-label,
+  .room-subtitle,
   .scoreboard-header p,
   .app-header p {
     font-size: 0.95rem;
@@ -855,12 +896,13 @@ body {
   .small-button,
   .button,
   .input,
-  .modal-close-button {
+  .modal-close-button,
+  .back-link {
     font-size: 0.95rem;
   }
 
   .player-row {
-    padding: 1rem 1rem;
+    padding: 0.9rem 0.9rem;
   }
 
   .player-actions {
