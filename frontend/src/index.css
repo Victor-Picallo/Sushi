@@ -763,14 +763,108 @@ body {
   background: rgba(248, 250, 252, 0.95);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .button-row {
     grid-template-columns: 1fr;
+  }
+
+  .app-card,
+  .app-card.room-card {
+    padding: 1.5rem;
+  }
+
+  .room-status-row {
+    grid-template-columns: 1fr;
+    margin: 1rem 0 0;
+    padding: 1rem;
+    width: 100%;
+  }
+
+  .room-status-action {
+    justify-content: stretch;
+  }
+
+  .finish-button {
+    width: 100%;
+    max-width: 100%;
   }
 
   .room-header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .back-link {
+    position: relative;
+    left: auto;
+    top: auto;
+    margin-bottom: 1rem;
+    align-self: flex-start;
+  }
+
+  .player-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .player-actions {
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .player-score {
+    min-width: auto;
+    width: auto;
+  }
+
+  .score-buttons {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-shell {
+    padding: 1.5rem 0.75rem;
+  }
+
+  .app-card,
+  .app-card.room-card {
+    padding: 1.25rem;
+    border-radius: 28px;
+  }
+
+  .room-header {
+    padding: 1rem;
+  }
+
+  .room-header h2 {
+    font-size: 2.2rem;
+  }
+
+  .room-subtitle,
+  .room-label,
+  .scoreboard-header p,
+  .app-header p {
+    font-size: 0.95rem;
+  }
+
+  .status-chip,
+  .finish-button,
+  .small-button,
+  .button,
+  .input,
+  .modal-close-button {
+    font-size: 0.95rem;
+  }
+
+  .player-row {
+    padding: 1rem 1rem;
+  }
+
+  .player-actions {
+    gap: 0.5rem;
   }
 }
 
