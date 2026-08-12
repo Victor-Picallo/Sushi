@@ -143,9 +143,7 @@ function App() {
       const justClosed = data.isClosed && !prevRoomClosedRef.current;
       prevRoomClosedRef.current = data.isClosed;
 
-      // Check current player's score for 10-multiples milestone
-      const currentSocketId = socket.id ?? playerId;
-      const me = sortedPlayers.find((p) => p.id === currentSocketId || (userName && p.name.trim().toLowerCase() === userName.trim().toLowerCase()));
+      const me = getCurrentPlayer(sortedPlayers);
       if (me) {
         const currentScore = me.score;
         const previousScore = prevScoreRef.current;
@@ -291,6 +289,12 @@ function App() {
   const updateScore = (amount: number) => {
     if (!roomId || roomData?.isClosed) return;
 
+    const playerInRoom = getCurrentPlayer(roomData?.players ?? []);
+    if (!playerInRoom) {
+      setMessage('Tu sesión de sala no está activa en este momento. Vuelve a entrar.');
+      return;
+    }
+
     if (amount > 0) {
       const id = Date.now() + Math.random();
       setFloatingSushi((current) => [...current, { id, x: 52, y: 10 }]);
@@ -340,6 +344,16 @@ function App() {
   }, [movedPlayerIds]);
 
   const isRoomClosed = roomData?.isClosed;
+  const totalRoomScore = roomData?.players.reduce((sum, player) => sum + player.score, 0) ?? 0;
+  const currentUserNameKey = userName.trim().toLowerCase();
+
+  const getCurrentPlayer = (players: Player[] = []) =>
+    players.find(
+      (player) =>
+        player.id === socket.id ||
+        player.id === playerId ||
+        (currentUserNameKey && player.name.trim().toLowerCase() === currentUserNameKey),
+    ) ?? null;
 
   const getRankLabel = (index: number) => {
     if (index === 0) return '🏆';
@@ -460,6 +474,11 @@ function App() {
 
         {!isRoomClosed && (
           <div className="room-action-container">
+            <div className="room-total-counter" aria-live="polite">
+              <span className="room-total-label">Total sala</span>
+              <strong>{totalRoomScore}</strong>
+              <span className="room-total-unit">🍣</span>
+            </div>
             <button type="button" className="button button-secondary finish-button" onClick={finishCount}>
               Terminar recuento
             </button>
@@ -507,9 +526,9 @@ function App() {
               <ul className="player-list">
                 {roomData.players.map((player, index) => {
                   const isCurrentPlayer =
-                    player.id === playerId ||
                     player.id === socket.id ||
-                    player.name.trim().toLowerCase() === userName.trim().toLowerCase();
+                    player.id === playerId ||
+                    player.name.trim().toLowerCase() === currentUserNameKey;
                   return (
                     <li key={player.id} className={`player-row ${movedPlayerIds.includes(player.id) ? 'player-moved' : ''}`}>
                       <div>
