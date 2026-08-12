@@ -261,19 +261,21 @@ function App() {
       return;
     }
 
-    if (!roomId.trim()) {
-      setMessage('Introduce un ID de sala o crea una nueva.');
+    const normalizedRoomId = roomId.trim();
+
+    if (!/^\d{4}$/.test(normalizedRoomId)) {
+      setMessage('El ID de la sala debe tener 4 dígitos.');
       return;
     }
 
     setMessage('');
-    localStorage.setItem('roomId', roomId);
+    localStorage.setItem('roomId', normalizedRoomId);
     localStorage.setItem('userName', userName);
     localStorage.setItem('creatorToken', creatorToken);
     setIsJoining(true);
     socket.emit(
       'join_room',
-      { roomId, userName, creatorToken },
+      { roomId: normalizedRoomId, userName, creatorToken },
       (room: Room) => {
         const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
         setRoomData({ ...room, players: sortedPlayers });
@@ -375,8 +377,11 @@ function App() {
                 <input
                   className="input"
                   value={roomId}
-                  onChange={(e) => setRoomId(e.target.value)}
-                  placeholder="Escribe o crea una sala"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={4}
+                  onChange={(e) => setRoomId(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  placeholder="ID de la sesion"
                 />
               </label>
 
