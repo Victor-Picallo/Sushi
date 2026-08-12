@@ -158,7 +158,7 @@ body {
   max-width: none;
   min-height: 100dvh;
   margin: 0;
-  padding: 0.6rem 1rem 1rem 1rem;
+  padding: 0.6rem 1rem 2rem 1rem;
   background: #fff;
   border: 0;
   box-shadow: none;
@@ -779,7 +779,7 @@ body {
 .finish-button {
   width: 100%;
   max-width: 320px;
-  margin: 0.8rem auto 2.5rem;
+  margin: 0.8rem auto 4.5rem;
   background: linear-gradient(135deg, #ff7b62, #ea5e4d 55%, #df4e41);
   color: #ffffff;
   border: 2px solid rgba(31, 41, 59, 0.9);
@@ -1135,7 +1135,7 @@ body {
     min-height: 100dvh;
     margin: 0;
     overflow: visible;
-    padding: 1rem 1rem;
+    padding: 1rem 1rem 2rem 1rem;
   }
 
   .modal-card,
@@ -1265,7 +1265,7 @@ body {
   }
 
   .app-card.room-card {
-    padding: 1rem 0;
+    padding: 1rem 0 2rem 0;
     border-radius: 0;
     margin: 0;
     min-height: auto;
