@@ -620,9 +620,6 @@ function App() {
         <div className="room-header">
           <p className="room-label">Sala</p>
           <h2>{roomId}</h2>
-          <p className="room-subtitle">
-            Dueño de la sesión: <span>{(roomData?.creatorName ? roomData.creatorName.toUpperCase() : userName.toUpperCase())}</span>
-          </p>
         </div>
 
         {!isRoomClosed && (
