@@ -433,11 +433,13 @@ function App() {
     setShowRoomCreatedModal(false);
     setShowPodium(false);
     prevRoomClosedRef.current = false;
+    reconnectLockRef.current = false;
+    rejoinGuardRef.current = null;
+    sessionRestoreKeyRef.current = null;
+    lastKnownRoomRef.current = null;
     localStorage.removeItem('roomId');
     localStorage.removeItem('creatorToken');
-    if (!userName.trim()) {
-      localStorage.removeItem('userName');
-    }
+    localStorage.removeItem('userName');
   };
 
   useEffect(() => {
