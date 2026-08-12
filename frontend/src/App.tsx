@@ -83,6 +83,8 @@ function App() {
   const [movedPlayerIds, setMovedPlayerIds] = useState<string[]>([]);
   const [floatingSushi, setFloatingSushi] = useState<{ id: number; x: number; y: number }[]>([]);
   const prevRoomClosedRef = useRef(false);
+  const prevOrderRef = useRef<string[]>([]);
+  const sessionRestoreKeyRef = useRef<string | null>(null);
 
   // Fullscreen celebration overlay state
   const [celebration, setCelebration] = useState<{
@@ -122,12 +124,51 @@ function App() {
     frame();
   };
 
+  const restoreRoomSession = () => {
+    const savedRoomId = localStorage.getItem('roomId');
+    const savedUserName = localStorage.getItem('userName');
+    const savedCreatorToken = localStorage.getItem('creatorToken') || '';
+
+    if (!savedRoomId || !savedUserName) {
+      return;
+    }
+
+    const sessionKey = `${savedRoomId}|${savedUserName}|${savedCreatorToken}`;
+    if (sessionRestoreKeyRef.current === sessionKey && inRoom) {
+      return;
+    }
+
+    sessionRestoreKeyRef.current = sessionKey;
+
+    if (savedRoomId !== roomId) setRoomId(savedRoomId);
+    if (savedUserName !== userName) setUserName(savedUserName);
+    if (savedCreatorToken !== creatorToken) setCreatorToken(savedCreatorToken);
+
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    socket.emit(
+      'join_room',
+      { roomId: savedRoomId, userName: savedUserName, creatorToken: savedCreatorToken },
+      (room: Room) => {
+        const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
+        setRoomData({ ...room, players: sortedPlayers });
+        setRoomId(savedRoomId);
+        setUserName(savedUserName);
+        setInRoom(true);
+        setIsJoining(false);
+        sessionRestoreKeyRef.current = null;
+      },
+    );
+  };
+
   useEffect(() => {
     const handleRoomData = (data: Room) => {
       const sortedPlayers = [...data.players].sort((a, b) => b.score - a.score);
       const newOrder = sortedPlayers.map((player) => player.id);
       const movedIds = newOrder.filter((id, index) => {
-        const previousIndex = prevOrder.indexOf(id);
+        const previousIndex = prevOrderRef.current.indexOf(id);
         return previousIndex > -1 && previousIndex > index;
       });
 
@@ -168,6 +209,7 @@ function App() {
       }
 
       setRoomData({ ...data, players: sortedPlayers });
+      prevOrderRef.current = newOrder;
       setPrevOrder(newOrder);
       setMovedPlayerIds(movedIds);
       setInRoom(true);
@@ -199,12 +241,11 @@ function App() {
       socket.off('connect', handleConnect);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [prevOrder, roomId, userName, creatorToken]);
+  }, [inRoom, roomId, userName, creatorToken]);
 
   useEffect(() => {
     const storedRoomId = localStorage.getItem('roomId');
     const storedUserName = localStorage.getItem('userName');
-    const storedCreatorToken = localStorage.getItem('creatorToken') || '';
 
     if (!storedRoomId || !storedUserName) {
       return;
@@ -212,26 +253,9 @@ function App() {
 
     setRoomId(storedRoomId);
     setUserName(storedUserName);
-    setCreatorToken(storedCreatorToken);
+    setCreatorToken(localStorage.getItem('creatorToken') || '');
     setIsJoining(true);
-
-    const emitJoin = () => {
-      socket.emit('join_room', {
-        roomId: storedRoomId,
-        userName: storedUserName,
-        creatorToken: storedCreatorToken,
-      });
-    };
-
-    if (socket.connected) {
-      emitJoin();
-    } else {
-      socket.on('connect', emitJoin);
-    }
-
-    return () => {
-      socket.off('connect', emitJoin);
-    };
+    restoreRoomSession();
   }, []);
 
   const createRoom = () => {
@@ -363,39 +387,6 @@ function App() {
         player.id === playerId ||
         (currentUserNameKey && player.name.trim().toLowerCase() === currentUserNameKey),
     ) ?? null;
-
-  const restoreRoomSession = () => {
-    const savedRoomId = localStorage.getItem('roomId');
-    const savedUserName = localStorage.getItem('userName');
-    const savedCreatorToken = localStorage.getItem('creatorToken') || '';
-
-    if (!savedRoomId || !savedUserName) {
-      return;
-    }
-
-    if (savedRoomId !== roomId || savedUserName !== userName || savedCreatorToken !== creatorToken) {
-      setRoomId(savedRoomId);
-      setUserName(savedUserName);
-      setCreatorToken(savedCreatorToken);
-    }
-
-    if (!socket.connected) {
-      socket.connect();
-    }
-
-    socket.emit(
-      'join_room',
-      { roomId: savedRoomId, userName: savedUserName, creatorToken: savedCreatorToken },
-      (room: Room) => {
-        const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
-        setRoomData({ ...room, players: sortedPlayers });
-        setRoomId(savedRoomId);
-        setUserName(savedUserName);
-        setInRoom(true);
-        setIsJoining(false);
-      },
-    );
-  };
 
   const getRankLabel = (index: number) => {
     if (index === 0) return '🏆';
