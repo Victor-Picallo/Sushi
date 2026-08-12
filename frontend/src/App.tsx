@@ -1,5 +1,59 @@
 import { useEffect, useState, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
+import confetti from 'canvas-confetti';
+
+const FUNNY_CELEBRATION_ITEMS = [
+  {
+    title: "¡ENTRANDO EN RITMO! 🥢✨",
+    subtitle: "¡10 piezas adentro! El paladar ya está bien despierto.",
+    gifUrl: "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Z6cW9vNXo3Z3pmMDk5Z29pZXZ5M2pxOW16Mmc3dndocnd6a2hicyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Lq0h93752f6J9tijrh/giphy.gif"
+  },
+  {
+    title: "¡MÁQUINA DE TRAGAR! 🔥🤤",
+    subtitle: "¡20 piezas! Tu estómago empieza a desafiar las leyes de la física.",
+    gifUrl: "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExT3RzbGJjNHEzeHRqZ2Z5dXFsdGFsbjVvaG1xdG5xMzRpaWp5bjVibCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/12uXi1GXBibALC/giphy.gif"
+  },
+  {
+    title: "¡¡LEGEN-SUSHI-DARIO!! 🐉💥",
+    subtitle: "¡30 piezas! Los chefs de la cocina acaban de pedir refuerzos.",
+    gifUrl: "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExeGJwbmFqMjFhM3lyNDdrYmkzb3VudndpdWl5dnp3eXZzOG05emtwOSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7btXkbsV26U95Uly/giphy.gif"
+  },
+  {
+    title: "¡¡MODO MONSTRUO DEL WASABI!! 👾🌶️",
+    subtitle: "¡40 piezas! Tu apetito ya no conoce límites humanos.",
+    gifUrl: "https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExenN4aTFnaTFpZjA4OWZ0aW1wOXV1ejZxdXpucXZqNDI5ZHJvdjlyeCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/tsX3YMWYzDPjAARfeg/giphy.gif"
+  },
+  {
+    title: "¡¡SUSHI MASTER ABSOLUTO!! 🥇🏆",
+    subtitle: "¡50 piezas tragadas! ¡Has alcanzado el primer gran objetivo!",
+    gifUrl: "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZydmsxdWV6bzVvdnp3cmg0Zm5kNDlsNm0zeHQ5bjE3azIxdWNkYyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/xT1R9B7cgalypD2a2s/giphy.gif"
+  },
+  {
+    title: "¡DESTRUCTORES DE ROLLOS! 🚀🌊",
+    subtitle: "¡60 piezas! Los peces del océano tiemblan a tu paso.",
+    gifUrl: "https://media.giphy.com/media/H986cBWlQH0PXjcLQO/giphy.gif"
+  },
+  {
+    title: "¡¡QUEBRANDO EL BUFET LIBRE!! 💰🍱",
+    subtitle: "¡70 piezas! El dueño del restaurante está llorando en la esquina.",
+    gifUrl: "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExNXlmcWFicnppNzhocXBna2tudXZocnllNXkyMnJsaWtyZXoxdHZsNCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Zk9mW5OmXTz9e/giphy.gif"
+  },
+  {
+    title: "¡¡PODER CÓSMICO DEL NIGIRI!! 🌌🍙",
+    subtitle: "¡80 piezas! ¿Dónde estás metiendo todo ese arroz?",
+    gifUrl: "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExaG9iYnA5bWFwbWoxOTc0MWRvOTUzNmlybzljazN2ZXdydXR5OGs4OCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3oKIPa2TdahY8LAAxy/giphy.gif"
+  },
+  {
+    title: "¡¡AMENAZA GASTRONÓMICA MUNDIAL!! ⚠️⚡",
+    subtitle: "¡90 piezas! Se activa la alerta máxima en la barra de sushi.",
+    gifUrl: "https://media.giphy.com/media/3o7TKSjRrfIPjeiVyM/giphy.gif"
+  },
+  {
+    title: "¡¡DIOS SUPREMO DE LA MITOLOGÍA SUSHI!! 👑🍣⚡",
+    subtitle: "¡¡100+ PIEZAS!! ¡RÉCORD DE LA HISTORIA! Te han nombrado Leyenda Imparable.",
+    gifUrl: "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExbnB0ZjBtdXZvdWVwb20xNzk4YjFtbDFndDdsanMwbTgxcnVqNjdzOCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/ffoUuIn1qRz7G/giphy.gif"
+  }
+];
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3002';
 const socket: Socket = io(backendUrl);
@@ -29,6 +83,44 @@ function App() {
   const [movedPlayerIds, setMovedPlayerIds] = useState<string[]>([]);
   const prevRoomClosedRef = useRef(false);
 
+  // Fullscreen celebration overlay state
+  const [celebration, setCelebration] = useState<{
+    show: boolean;
+    score: number;
+    title: string;
+    subtitle: string;
+    gifUrl: string;
+  } | null>(null);
+  const prevScoreRef = useRef<number | null>(null);
+
+  const fireConfetti = () => {
+    // Launch fireworks style confetti explosions
+    const duration = 2.5 * 1000;
+    const end = Date.now() + duration;
+
+    const frame = () => {
+      confetti({
+        particleCount: 5,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+        colors: ['#ff4d4f', '#ffc53d', '#73d13d', '#ff85c0', '#9254de', '#13c2c2']
+      });
+      confetti({
+        particleCount: 5,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+        colors: ['#ff4d4f', '#ffc53d', '#73d13d', '#ff85c0', '#9254de', '#13c2c2']
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    };
+    frame();
+  };
+
   useEffect(() => {
     const handleRoomData = (data: Room) => {
       const sortedPlayers = [...data.players].sort((a, b) => b.score - a.score);
@@ -45,6 +137,32 @@ function App() {
 
       const justClosed = data.isClosed && !prevRoomClosedRef.current;
       prevRoomClosedRef.current = data.isClosed;
+
+      // Check current player's score for 10-multiples milestone
+      const currentSocketId = socket.id;
+      const me = sortedPlayers.find((p) => p.id === currentSocketId || (userName && p.name === userName));
+      if (me) {
+        const currentScore = me.score;
+        const previousScore = prevScoreRef.current;
+        if (
+          previousScore !== null &&
+          currentScore > previousScore &&
+          currentScore > 0 &&
+          currentScore % 10 === 0
+        ) {
+          const itemIndex = Math.min(Math.floor(currentScore / 10) - 1, FUNNY_CELEBRATION_ITEMS.length - 1);
+          const celebrationItem = FUNNY_CELEBRATION_ITEMS[itemIndex];
+          setCelebration({
+            show: true,
+            score: currentScore,
+            title: celebrationItem.title,
+            subtitle: celebrationItem.subtitle,
+            gifUrl: celebrationItem.gifUrl
+          });
+          fireConfetti();
+        }
+        prevScoreRef.current = currentScore;
+      }
 
       setRoomData({ ...data, players: sortedPlayers });
       setPrevOrder(newOrder);
@@ -298,32 +416,30 @@ function App() {
       )}
 
       <div className="app-card room-card">
-        <div className="room-header">
+        <div className="room-top-bar">
           <button type="button" className="back-link" onClick={leaveRoom}>
-            SALIR
+            Salir
           </button>
-          <div>
-            <p className="room-label">Sala</p>
-            <h2>{roomId}</h2>
-            <p className="room-subtitle">
-              Dueño de la sesión: {(roomData?.creatorName ? roomData.creatorName.toUpperCase() : userName.toUpperCase())}
-            </p>
+          <div className={`status-chip ${isRoomClosed ? 'closed' : ''}`}>
+            {isRoomClosed ? 'Recuento cerrado' : 'Partida en curso'}
           </div>
         </div>
-        <div className="room-status-row">
-          <div className="room-status-block">
-            <div className={`status-chip ${isRoomClosed ? 'closed' : ''}`}>
-              {isRoomClosed ? 'Recuento cerrado' : 'Partida en curso'}
-            </div>
-          </div>
-          <div className="room-status-block room-status-action">
-            {!isRoomClosed && (
-              <button type="button" className="button button-secondary finish-button" onClick={finishCount}>
-                Terminar recuento
-              </button>
-            )}
-          </div>
+
+        <div className="room-header">
+          <p className="room-label">Sala</p>
+          <h2>{roomId}</h2>
+          <p className="room-subtitle">
+            Dueño de la sesión: <span>{(roomData?.creatorName ? roomData.creatorName.toUpperCase() : userName.toUpperCase())}</span>
+          </p>
         </div>
+
+        {!isRoomClosed && (
+          <div className="room-action-container">
+            <button type="button" className="button button-secondary finish-button" onClick={finishCount}>
+              Terminar recuento
+            </button>
+          </div>
+        )}
 
         {showPodium && roomData && (
           <div className="modal-overlay" onClick={() => setShowPodium(false)}>
@@ -394,6 +510,26 @@ function App() {
           )}
         </section>
       </div>
+
+      {celebration && celebration.show && (
+        <div className="celebration-overlay" onClick={() => setCelebration(null)}>
+          <div className="celebration-card" onClick={(e) => e.stopPropagation()}>
+            <div className="celebration-badge">{celebration.score} PIEZAS 🍣</div>
+            <h2 className="celebration-title">{celebration.title}</h2>
+            <div className="celebration-media">
+              <img src={celebration.gifUrl} alt="Celebración Graciosa" className="celebration-gif" />
+            </div>
+            <p className="celebration-subtitle">{celebration.subtitle}</p>
+            <button
+              type="button"
+              className="button button-primary celebration-button"
+              onClick={() => setCelebration(null)}
+            >
+              ¡Seguir comiendo! 🚀
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
