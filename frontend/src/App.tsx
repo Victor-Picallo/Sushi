@@ -105,6 +105,7 @@ function App() {
     }
   });
   const [roomsSummaryMap, setRoomsSummaryMap] = useState<Record<string, RoomSummary>>({});
+  const userWantsLandingRef = useRef(false);
   const prevRoomClosedRef = useRef(false);
   const prevOrderRef = useRef<string[]>([]);
   const sessionRestoreKeyRef = useRef<string | null>(null);
@@ -212,6 +213,9 @@ function App() {
   };
 
   const restoreRoomSession = () => {
+    if (userWantsLandingRef.current) {
+      return;
+    }
     const savedRoomId = localStorage.getItem('roomId');
     const savedUserName = localStorage.getItem('userName');
     const savedCreatorToken = localStorage.getItem('creatorToken') || '';
@@ -414,6 +418,7 @@ function App() {
       return;
     }
 
+    userWantsLandingRef.current = false;
     const generatedId = Math.floor(1000 + Math.random() * 9000).toString();
     const generatedToken = creatorToken || (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function'
       ? globalThis.crypto.randomUUID()
@@ -451,6 +456,7 @@ function App() {
       return;
     }
 
+    userWantsLandingRef.current = false;
     const activePlayerToken = ensurePlayerToken();
     setMessage('');
     persistRoomSession(normalizedRoomId, userName, creatorToken);
@@ -472,6 +478,7 @@ function App() {
   };
 
   const rejoinFromHistory = (item: RoomHistoryItem) => {
+    userWantsLandingRef.current = false;
     const targetName = userName.trim() || item.userName;
     setUserName(targetName);
     setRoomId(item.roomId);
@@ -547,6 +554,7 @@ function App() {
   };
 
   const goBackToLanding = () => {
+    userWantsLandingRef.current = true;
     setInRoom(false);
   };
 

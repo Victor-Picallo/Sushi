@@ -221,11 +221,11 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 1.25rem 1rem;
+  justify-content: flex-start;
+  padding: 1.5rem 1rem 3rem 1rem;
   background: radial-gradient(circle at 50% 35%, #ffe6e2 0%, #fff3f0 45%, #f8fafc 100%);
   box-sizing: border-box;
-  overflow-y: auto;
+  overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -249,21 +249,23 @@ body {
 
 @media (max-width: 640px) {
   .landing-shell {
-    padding: 0 0 2rem 0;
+    padding: 1rem 0 3rem 0;
     background: radial-gradient(circle at 50% 35%, #fff5f3 0%, #ffffff 80%);
-    overflow-y: auto;
+    overflow-y: auto !important;
     justify-content: flex-start;
+    height: auto !important;
+    min-height: 100dvh;
   }
 
   .landing-card {
-    min-height: 100dvh;
-    height: auto;
-    max-height: none;
+    min-height: auto !important;
+    height: auto !important;
+    max-height: none !important;
     border-radius: 0;
     background: transparent;
     box-shadow: none;
     border: none;
-    padding: 1rem 1.25rem 2rem 1.25rem;
+    padding: 1rem 1.25rem 3rem 1.25rem;
     justify-content: flex-start;
   }
 }
@@ -1449,9 +1451,15 @@ body {
 @media (max-width: 768px) {
 
   html,
-  body,
+  body {
+    padding: 0;
+    margin: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   #root {
-    height: 100%;
     min-height: 100dvh;
     padding: 0;
     margin: 0;
