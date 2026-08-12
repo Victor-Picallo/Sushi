@@ -207,6 +207,24 @@ body {
   margin-bottom: 2rem;
 }
 
+.app-favicon {
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 0.5rem auto;
+  display: block;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+  animation: pulse-favicon 3s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-favicon {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.06);
+  }
+}
+
 .app-title-wrap {
   position: relative;
   display: grid;

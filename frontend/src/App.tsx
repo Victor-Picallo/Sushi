@@ -483,6 +483,7 @@ function App() {
         <div className="app-shell">
           <div className="app-card">
             <div className="app-header">
+              <img src="/favicon.svg" alt="Sushi Icon" className="app-favicon" />
               <div className="app-title-wrap">
                 <h1 className="app-title">SUSHI</h1>
               </div>
