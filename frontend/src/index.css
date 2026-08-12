@@ -779,7 +779,7 @@ body {
 .finish-button {
   width: 100%;
   max-width: 320px;
-  margin: 2rem auto 1rem;
+  margin: 0.8rem auto 2.5rem;
   background: linear-gradient(135deg, #ff7b62, #ea5e4d 55%, #df4e41);
   color: #ffffff;
   border: 2px solid rgba(31, 41, 59, 0.9);
