@@ -147,24 +147,43 @@ socket.on(
   });
 
   socket.on('disconnect', () => {
-    for (const roomId of Object.keys(rooms)) {
-      const room = rooms[roomId];
-      if (!room) continue;
+    const currentName = String(socket.data.userName || '').trim();
+    const roomId = String(socket.data.roomId || '');
 
-      const currentName = String(socket.data.userName || '').trim();
+    if (roomId && rooms[roomId]) {
+      const room = rooms[roomId];
       const playerIndex = room.players.findIndex(
         (player) => player.id === socket.id || (currentName && player.name.trim().toLowerCase() === currentName.toLowerCase()),
       );
 
       if (playerIndex !== -1) {
-        room.players.splice(playerIndex, 1);
-
-        if (room.players.length === 0) {
-          delete rooms[roomId];
-        } else {
-          io.to(roomId).emit('room_data', room);
+        const player = room.players[playerIndex];
+        if (player) {
+          player.id = player.id;
+          player.name = player.name.trim() || currentName || player.name;
         }
       }
+
+      io.to(roomId).emit('room_data', room);
+      return;
+    }
+
+    for (const roomId of Object.keys(rooms)) {
+      const room = rooms[roomId];
+      if (!room) continue;
+
+      const playerIndex = room.players.findIndex(
+        (player) => player.id === socket.id || (currentName && player.name.trim().toLowerCase() === currentName.toLowerCase()),
+      );
+
+      if (playerIndex !== -1) {
+        const player = room.players[playerIndex];
+        if (player) {
+          player.name = player.name.trim() || currentName || player.name;
+        }
+      }
+
+      io.to(roomId).emit('room_data', room);
     }
   });
 });

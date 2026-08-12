@@ -85,6 +85,8 @@ function App() {
   const prevRoomClosedRef = useRef(false);
   const prevOrderRef = useRef<string[]>([]);
   const sessionRestoreKeyRef = useRef<string | null>(null);
+  const reconnectLockRef = useRef(false);
+  const lastKnownRoomRef = useRef<string | null>(null);
 
   // Fullscreen celebration overlay state
   const [celebration, setCelebration] = useState<{
@@ -134,11 +136,14 @@ function App() {
     }
 
     const sessionKey = `${savedRoomId}|${savedUserName}|${savedCreatorToken}`;
-    if (sessionRestoreKeyRef.current === sessionKey && inRoom) {
+    const sameSession = sessionRestoreKeyRef.current === sessionKey;
+    if (sameSession && reconnectLockRef.current) {
       return;
     }
 
+    reconnectLockRef.current = true;
     sessionRestoreKeyRef.current = sessionKey;
+    lastKnownRoomRef.current = savedRoomId;
 
     if (savedRoomId !== roomId) setRoomId(savedRoomId);
     if (savedUserName !== userName) setUserName(savedUserName);
@@ -158,6 +163,7 @@ function App() {
         setUserName(savedUserName);
         setInRoom(true);
         setIsJoining(false);
+        reconnectLockRef.current = false;
         sessionRestoreKeyRef.current = null;
       },
     );
@@ -171,6 +177,10 @@ function App() {
         const previousIndex = prevOrderRef.current.indexOf(id);
         return previousIndex > -1 && previousIndex > index;
       });
+
+      if (data.id) {
+        lastKnownRoomRef.current = data.id;
+      }
 
       if (typeof socket.id === 'string') {
         setPlayerId(socket.id);
@@ -223,12 +233,27 @@ function App() {
       if (typeof socket.id === 'string') {
         setPlayerId(socket.id);
       }
-      restoreRoomSession();
+
+      const savedRoomId = localStorage.getItem('roomId');
+      const savedUserName = localStorage.getItem('userName');
+      if (savedRoomId && savedUserName) {
+        const sameRoom = lastKnownRoomRef.current === savedRoomId;
+        if (!sameRoom || !inRoom) {
+          restoreRoomSession();
+        }
+      }
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        restoreRoomSession();
+        const savedRoomId = localStorage.getItem('roomId');
+        const savedUserName = localStorage.getItem('userName');
+        if (savedRoomId && savedUserName) {
+          const sameRoom = lastKnownRoomRef.current === savedRoomId;
+          if (!sameRoom || !inRoom) {
+            restoreRoomSession();
+          }
+        }
       }
     };
 
@@ -236,10 +261,19 @@ function App() {
     socket.on('connect', handleConnect);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
+    const refreshTimer = window.setInterval(() => {
+      const savedRoomId = localStorage.getItem('roomId');
+      const savedUserName = localStorage.getItem('userName');
+      if (savedRoomId && savedUserName && (lastKnownRoomRef.current === savedRoomId || !inRoom)) {
+        restoreRoomSession();
+      }
+    }, 10000);
+
     return () => {
       socket.off('room_data', handleRoomData);
       socket.off('connect', handleConnect);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.clearInterval(refreshTimer);
     };
   }, [inRoom, roomId, userName, creatorToken]);
 
@@ -255,6 +289,7 @@ function App() {
     setUserName(storedUserName);
     setCreatorToken(localStorage.getItem('creatorToken') || '');
     setIsJoining(true);
+    lastKnownRoomRef.current = storedRoomId;
     restoreRoomSession();
   }, []);
 
