@@ -55,6 +55,7 @@ body {
   width: 100%;
   min-width: 0;
   overflow-x: hidden;
+  overflow-y: auto;
   height: 100%;
   margin: 0;
 }
@@ -123,7 +124,9 @@ body {
   justify-content: stretch;
   padding: 0 0 clamp(1.5rem, 4vw, 2.5rem);
   background: #fff;
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .app-card {
@@ -160,7 +163,7 @@ body {
   border: 0;
   box-shadow: none;
   color: #0f172a;
-  overflow: hidden;
+  overflow: visible;
   transform: none;
   border-radius: 0;
 }
@@ -872,6 +875,7 @@ body {
 .scoreboard {
   padding-top: 1.75rem;
   transform: translateY(8px);
+  width: 100%;
 }
 
 .scoreboard-header {
@@ -1085,14 +1089,22 @@ body {
   #root {
     height: 100%;
     min-height: 100dvh;
+    padding: 0;
+    margin: 0;
   }
 
   .app-shell {
     width: 100%;
     min-height: 100dvh;
-    height: 100dvh;
-    padding: 0;
-    overflow: hidden;
+    height: auto;
+    padding: 0 0 clamp(2rem, 8vw, 3.5rem) 0;
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+    padding-left: max(0, env(safe-area-inset-left));
+    padding-right: max(0, env(safe-area-inset-right));
+    padding-bottom: max(clamp(2rem, 8vw, 3.5rem), env(safe-area-inset-bottom));
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     align-items: stretch;
     justify-content: stretch;
   }
@@ -1100,8 +1112,8 @@ body {
   .app-card {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    padding-bottom: 1rem;
+    justify-content: flex-start;
+    padding: 1.25rem 1rem;
   }
 
   .app-card.room-card {
@@ -1109,16 +1121,20 @@ body {
     max-width: none;
     min-height: 100dvh;
     margin: 0;
+    overflow: visible;
+    padding: 1rem 1rem;
   }
 
   .modal-card,
   .podium-card {
     max-width: 100%;
+    margin: 0 1rem;
   }
 
   .app-card,
   .app-card.room-card {
-    padding: 1.5rem;
+    border-radius: 0;
+    background: #fff;
   }
 
   .app-header p {
@@ -1211,12 +1227,40 @@ body {
 }
 
 @media (max-width: 480px) {
+  html,
+  body,
+  #root {
+    padding: 0;
+    margin: 0;
+  }
+
   .app-shell {
     padding: 0;
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+    padding-left: max(0, env(safe-area-inset-left));
+    padding-right: max(0, env(safe-area-inset-right));
+    padding-bottom: max(clamp(2.5rem, 10vw, 4rem), env(safe-area-inset-bottom));
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-card {
+    padding: 1rem 0;
+    border-radius: 0;
+    background: #fff;
+  }
+
+  .app-card.room-card {
+    padding: 1rem 0;
+    border-radius: 0;
+    margin: 0;
+    min-height: auto;
   }
 
   .app-header {
-    margin-bottom: 1.2rem;
+    margin-bottom: 1rem;
+    padding: 1rem 1rem 0.5rem 1rem;
   }
 
   .app-title-wrap {
@@ -1250,15 +1294,13 @@ body {
     text-shadow: 0 3px 0 rgba(15, 23, 42, 0.8);
   }
 
-  .app-card,
-  .app-card.room-card {
-    padding: 1rem;
-    border-radius: 0;
-    margin: 0;
+  .form-grid {
+    padding: 0 1rem;
   }
 
   .room-header {
-    padding: 1rem 0.75rem;
+    padding: 1rem 1rem;
+    margin-bottom: 1rem;
   }
 
   .room-header h2 {
@@ -1290,10 +1332,34 @@ body {
   .empty-state {
     width: 100%;
     max-width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .room-top-bar {
+    padding: 1rem 1rem 0;
+  }
+
+  .room-action-container {
+    padding: 0 1rem;
+  }
+
+  .scoreboard {
+    padding: 1rem 0 0 0;
+  }
+
+  .scoreboard-header {
+    padding: 0 1rem;
+  }
+
+  .player-list {
+    padding: 0 1rem;
   }
 
   .player-row {
-    padding: 0.9rem 0.9rem;
+    padding: 0.9rem 0;
     width: 100%;
     gap: 0.6rem;
   }
@@ -1309,6 +1375,16 @@ body {
 
   .small-button {
     padding: 0.65rem 0.78rem;
+  }
+
+  .modal-card {
+    margin: 1rem;
+    max-width: calc(100% - 2rem);
+  }
+
+  .podium-card {
+    margin: 1rem;
+    max-width: calc(100% - 2rem);
   }
 }
 
