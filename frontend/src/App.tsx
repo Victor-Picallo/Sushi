@@ -74,6 +74,7 @@ type RoomHistoryItem = {
   creatorToken?: string;
   lastJoinedAt: number;
   isClosed?: boolean;
+  finalPlayers?: { name: string; score: number }[];
 };
 
 type RoomSummary = {
@@ -134,9 +135,9 @@ function App() {
     });
   };
 
-  const updateHistoryClosedState = (id: string, isClosed: boolean) => {
+  const updateHistoryClosedState = (id: string, isClosed: boolean, players?: { name: string; score: number }[]) => {
     setRoomHistory((prev) => {
-      const updated = prev.map((item) => (item.roomId === id ? { ...item, isClosed } : item));
+      const updated = prev.map((item) => (item.roomId === id ? { ...item, isClosed, finalPlayers: players && players.length > 0 ? players : item.finalPlayers } : item));
       try {
         localStorage.setItem('sushi_room_history', JSON.stringify(updated));
       } catch (e) {
@@ -277,7 +278,7 @@ function App() {
 
       if (data.id) {
         lastKnownRoomRef.current = data.id;
-        updateHistoryClosedState(data.id, !!data.isClosed);
+        updateHistoryClosedState(data.id, !!data.isClosed, sortedPlayers.map(p => ({ name: p.name, score: p.score })));
       }
 
       if (typeof socket.id === 'string') {
@@ -486,8 +487,25 @@ function App() {
       'join_room',
       { roomId: item.roomId, userName: targetName, creatorToken: item.creatorToken || creatorToken, playerToken: activePlayerToken },
       (room: Room) => {
-        const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
-        setRoomData({ ...room, players: sortedPlayers });
+        const isClosed = room.isClosed || !!item.isClosed;
+        let playersToUse = room.players;
+        if (isClosed && item.finalPlayers && item.finalPlayers.length > 0) {
+          const scoreMap = new Map<string, number>();
+          for (const fp of item.finalPlayers) {
+            scoreMap.set(fp.name.trim().toLowerCase(), fp.score);
+          }
+          playersToUse = room.players.map((p) => {
+            const savedScore = scoreMap.get(p.name.trim().toLowerCase());
+            return savedScore !== undefined ? { ...p, score: Math.max(p.score, savedScore) } : p;
+          });
+          for (const fp of item.finalPlayers) {
+            if (!playersToUse.some((p) => p.name.trim().toLowerCase() === fp.name.trim().toLowerCase())) {
+              playersToUse.push({ id: `saved-${fp.name}`, name: fp.name, score: fp.score });
+            }
+          }
+        }
+        const sortedPlayers = [...playersToUse].sort((a, b) => b.score - a.score);
+        setRoomData({ ...room, isClosed, players: sortedPlayers });
         if (typeof socket.id === 'string') {
           setPlayerId(socket.id);
         }
@@ -520,8 +538,8 @@ function App() {
   const finishCount = () => {
     socket.emit('finish_count', { roomId }, (room: Room) => {
       if (room?.isClosed) {
-        updateHistoryClosedState(room.id, true);
         const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
+        updateHistoryClosedState(room.id, true, sortedPlayers.map(p => ({ name: p.name, score: p.score })));
         setRoomData({ ...room, players: sortedPlayers });
         setShowPodium(true);
       }
@@ -532,6 +550,7 @@ function App() {
     setInRoom(false);
   };
 
+  /*
   const leaveRoomPermanently = () => {
     if (roomId) {
       socket.emit('leave_room', { roomId });
@@ -554,6 +573,7 @@ function App() {
     localStorage.removeItem('creatorToken');
     localStorage.removeItem('userName');
   };
+  */
 
   useEffect(() => {
     if (!movedPlayerIds.length) return;
