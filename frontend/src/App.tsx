@@ -526,8 +526,28 @@ function App() {
           </div>
         </div>
         {showPodium && roomData && (
-          <div className="modal-overlay">
-            <div className="podium-card">
+          <div
+            className="modal-overlay"
+            onMouseDown={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+          >
+            <div
+              className="podium-card"
+              onMouseDown={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+              }}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+              }}
+            >
               <h3>Podium final</h3>
               <p>Resultados de la partida</p>
               <ol className="podium-list">
@@ -554,8 +574,28 @@ function App() {
   return (
     <div className="app-shell">
       {showRoomCreatedModal && (
-        <div className="modal-overlay">
-          <div className="modal-card">
+        <div
+          className="modal-overlay"
+          onMouseDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+        >
+          <div
+            className="modal-card"
+            onMouseDown={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+          >
             <h3>Sala creada</h3>
             <p>Tu ID de sala es:</p>
             <strong>{roomId}</strong>
@@ -599,8 +639,28 @@ function App() {
         )}
 
         {showPodium && roomData && (
-          <div className="modal-overlay">
-            <div className="podium-card">
+          <div
+            className="modal-overlay"
+            onMouseDown={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+          >
+            <div
+              className="podium-card"
+              onMouseDown={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+              }}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+              }}
+            >
               <h3>Podium final</h3>
               <p>Resultados de la partida</p>
               <ol className="podium-list">
@@ -679,8 +739,28 @@ function App() {
       </div>
 
       {celebration && celebration.show && (
-        <div className="celebration-overlay">
-          <div className="celebration-card">
+        <div
+          className="celebration-overlay"
+          onMouseDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+        >
+          <div
+            className="celebration-card"
+            onMouseDown={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+          >
             <div className="celebration-badge">{celebration.score} PIEZAS 🍣</div>
             <h2 className="celebration-title">{celebration.title}</h2>
             <div className="celebration-media">
