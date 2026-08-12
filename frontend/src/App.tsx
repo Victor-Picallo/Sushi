@@ -181,16 +181,25 @@ function App() {
       if (typeof socket.id === 'string') {
         setPlayerId(socket.id);
       }
+      restoreRoomSession();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        restoreRoomSession();
+      }
     };
 
     socket.on('room_data', handleRoomData);
     socket.on('connect', handleConnect);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       socket.off('room_data', handleRoomData);
       socket.off('connect', handleConnect);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [prevOrder]);
+  }, [prevOrder, roomId, userName, creatorToken]);
 
   useEffect(() => {
     const storedRoomId = localStorage.getItem('roomId');
@@ -354,6 +363,39 @@ function App() {
         player.id === playerId ||
         (currentUserNameKey && player.name.trim().toLowerCase() === currentUserNameKey),
     ) ?? null;
+
+  const restoreRoomSession = () => {
+    const savedRoomId = localStorage.getItem('roomId');
+    const savedUserName = localStorage.getItem('userName');
+    const savedCreatorToken = localStorage.getItem('creatorToken') || '';
+
+    if (!savedRoomId || !savedUserName) {
+      return;
+    }
+
+    if (savedRoomId !== roomId || savedUserName !== userName || savedCreatorToken !== creatorToken) {
+      setRoomId(savedRoomId);
+      setUserName(savedUserName);
+      setCreatorToken(savedCreatorToken);
+    }
+
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    socket.emit(
+      'join_room',
+      { roomId: savedRoomId, userName: savedUserName, creatorToken: savedCreatorToken },
+      (room: Room) => {
+        const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
+        setRoomData({ ...room, players: sortedPlayers });
+        setRoomId(savedRoomId);
+        setUserName(savedUserName);
+        setInRoom(true);
+        setIsJoining(false);
+      },
+    );
+  };
 
   const getRankLabel = (index: number) => {
     if (index === 0) return '🏆';
