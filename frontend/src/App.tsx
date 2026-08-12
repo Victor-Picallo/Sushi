@@ -526,8 +526,8 @@ function App() {
           </div>
         </div>
         {showPodium && roomData && (
-          <div className="modal-overlay" onClick={() => setShowPodium(false)}>
-            <div className="podium-card" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-overlay">
+            <div className="podium-card">
               <h3>Podium final</h3>
               <p>Resultados de la partida</p>
               <ol className="podium-list">
@@ -554,8 +554,8 @@ function App() {
   return (
     <div className="app-shell">
       {showRoomCreatedModal && (
-        <div className="modal-overlay" onClick={() => setShowRoomCreatedModal(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay">
+          <div className="modal-card">
             <h3>Sala creada</h3>
             <p>Tu ID de sala es:</p>
             <strong>{roomId}</strong>
@@ -599,8 +599,8 @@ function App() {
         )}
 
         {showPodium && roomData && (
-          <div className="modal-overlay" onClick={() => setShowPodium(false)}>
-            <div className="podium-card" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-overlay">
+            <div className="podium-card">
               <h3>Podium final</h3>
               <p>Resultados de la partida</p>
               <ol className="podium-list">
@@ -633,7 +633,7 @@ function App() {
             <>
               {isRoomClosed && (
                 <div className="room-message">
-                  El creador cerró el recuento. Ya no se pueden modificar las piezas.
+                  Se ha cerrado el recuento de la partida.
                 </div>
               )}
               <ul className="player-list">
@@ -679,8 +679,8 @@ function App() {
       </div>
 
       {celebration && celebration.show && (
-        <div className="celebration-overlay" onClick={() => setCelebration(null)}>
-          <div className="celebration-card" onClick={(e) => e.stopPropagation()}>
+        <div className="celebration-overlay">
+          <div className="celebration-card">
             <div className="celebration-badge">{celebration.score} PIEZAS 🍣</div>
             <h2 className="celebration-title">{celebration.title}</h2>
             <div className="celebration-media">
