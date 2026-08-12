@@ -58,7 +58,7 @@ const FUNNY_CELEBRATION_ITEMS = [
 const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3002';
 const socket: Socket = io(backendUrl);
 
-type Player = { id: string; name: string; score: number };
+type Player = { id: string; name: string; score: number; playerToken?: string };
 type Room = {
   id: string;
   players: Player[];
@@ -79,7 +79,6 @@ function App() {
   const [, setIsJoining] = useState(false);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [creatorToken, setCreatorToken] = useState(() => localStorage.getItem('creatorToken') || '');
-  const [prevOrder, setPrevOrder] = useState<string[]>([]);
   const [movedPlayerIds, setMovedPlayerIds] = useState<string[]>([]);
   const [floatingSushi, setFloatingSushi] = useState<{ id: number; x: number; y: number }[]>([]);
   const prevRoomClosedRef = useRef(false);
@@ -87,6 +86,7 @@ function App() {
   const sessionRestoreKeyRef = useRef<string | null>(null);
   const reconnectLockRef = useRef(false);
   const lastKnownRoomRef = useRef<string | null>(null);
+  const rejoinGuardRef = useRef<string | null>(null);
 
   // Fullscreen celebration overlay state
   const [celebration, setCelebration] = useState<{
@@ -97,6 +97,30 @@ function App() {
     gifUrl: string;
   } | null>(null);
   const prevScoreRef = useRef<number | null>(null);
+
+  const ensurePlayerToken = () => {
+    const savedToken = localStorage.getItem('playerToken');
+    if (savedToken && savedToken.trim()) {
+      return savedToken;
+    }
+
+    const cryptoApi = globalThis.crypto;
+    const nextToken = cryptoApi && typeof cryptoApi.randomUUID === 'function'
+      ? cryptoApi.randomUUID()
+      : `player-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+    localStorage.setItem('playerToken', nextToken);
+    return nextToken;
+  };
+
+  const persistRoomSession = (nextRoomId: string, nextUserName: string, nextCreatorToken: string = creatorToken) => {
+    localStorage.setItem('roomId', nextRoomId);
+    localStorage.setItem('userName', nextUserName);
+    if (nextCreatorToken) {
+      localStorage.setItem('creatorToken', nextCreatorToken);
+    }
+    localStorage.setItem('playerToken', ensurePlayerToken());
+  };
 
   const fireConfetti = () => {
     // Launch fireworks style confetti explosions
@@ -130,18 +154,25 @@ function App() {
     const savedRoomId = localStorage.getItem('roomId');
     const savedUserName = localStorage.getItem('userName');
     const savedCreatorToken = localStorage.getItem('creatorToken') || '';
+    const currentPlayerToken = ensurePlayerToken();
 
     if (!savedRoomId || !savedUserName) {
       return;
     }
 
-    const sessionKey = `${savedRoomId}|${savedUserName}|${savedCreatorToken}`;
+    const sessionKey = `${savedRoomId}|${savedUserName}|${savedCreatorToken}|${currentPlayerToken}`;
     const sameSession = sessionRestoreKeyRef.current === sessionKey;
     if (sameSession && reconnectLockRef.current) {
       return;
     }
 
+    const guardKey = `${savedRoomId}|${savedUserName}|${currentPlayerToken}`;
+    if (rejoinGuardRef.current === guardKey && reconnectLockRef.current) {
+      return;
+    }
+
     reconnectLockRef.current = true;
+    rejoinGuardRef.current = guardKey;
     sessionRestoreKeyRef.current = sessionKey;
     lastKnownRoomRef.current = savedRoomId;
 
@@ -155,7 +186,12 @@ function App() {
 
     socket.emit(
       'join_room',
-      { roomId: savedRoomId, userName: savedUserName, creatorToken: savedCreatorToken },
+      {
+        roomId: savedRoomId,
+        userName: savedUserName,
+        creatorToken: savedCreatorToken,
+        playerToken: currentPlayerToken,
+      },
       (room: Room) => {
         const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
         setRoomData({ ...room, players: sortedPlayers });
@@ -165,6 +201,7 @@ function App() {
         setIsJoining(false);
         reconnectLockRef.current = false;
         sessionRestoreKeyRef.current = null;
+        rejoinGuardRef.current = null;
       },
     );
   };
@@ -220,7 +257,6 @@ function App() {
 
       setRoomData({ ...data, players: sortedPlayers });
       prevOrderRef.current = newOrder;
-      setPrevOrder(newOrder);
       setMovedPlayerIds(movedIds);
       setInRoom(true);
       setIsJoining(false);
@@ -238,7 +274,7 @@ function App() {
       const savedUserName = localStorage.getItem('userName');
       if (savedRoomId && savedUserName) {
         const sameRoom = lastKnownRoomRef.current === savedRoomId;
-        if (!sameRoom || !inRoom) {
+        if (!sameRoom || !inRoom || reconnectLockRef.current === false) {
           restoreRoomSession();
         }
       }
@@ -300,18 +336,19 @@ function App() {
     }
 
     const generatedId = Math.floor(1000 + Math.random() * 9000).toString();
-    const generatedToken = creatorToken || crypto.randomUUID();
+    const generatedToken = creatorToken || (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function'
+      ? globalThis.crypto.randomUUID()
+      : `creator-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+    const activePlayerToken = ensurePlayerToken();
     setCreatorToken(generatedToken);
     setRoomId(generatedId);
     setMessage('');
-    localStorage.setItem('roomId', generatedId);
-    localStorage.setItem('userName', userName);
-    localStorage.setItem('creatorToken', generatedToken);
+    persistRoomSession(generatedId, userName, generatedToken);
     setIsJoining(true);
     setShowRoomCreatedModal(true);
     socket.emit(
       'join_room',
-      { roomId: generatedId, userName, creatorToken: generatedToken },
+      { roomId: generatedId, userName, creatorToken: generatedToken, playerToken: activePlayerToken },
       (room: Room) => {
         const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
         setRoomData({ ...room, players: sortedPlayers });
@@ -334,14 +371,13 @@ function App() {
       return;
     }
 
+    const activePlayerToken = ensurePlayerToken();
     setMessage('');
-    localStorage.setItem('roomId', normalizedRoomId);
-    localStorage.setItem('userName', userName);
-    localStorage.setItem('creatorToken', creatorToken);
+    persistRoomSession(normalizedRoomId, userName, creatorToken);
     setIsJoining(true);
     socket.emit(
       'join_room',
-      { roomId: normalizedRoomId, userName, creatorToken },
+      { roomId: normalizedRoomId, userName, creatorToken, playerToken: activePlayerToken },
       (room: Room) => {
         const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
         setRoomData({ ...room, players: sortedPlayers });
@@ -392,13 +428,16 @@ function App() {
     setInRoom(false);
     setRoomData(null);
     setRoomId('');
-    setPrevOrder([]);
+    prevOrderRef.current = [];
     setMovedPlayerIds([]);
     setShowRoomCreatedModal(false);
     setShowPodium(false);
     prevRoomClosedRef.current = false;
     localStorage.removeItem('roomId');
     localStorage.removeItem('creatorToken');
+    if (!userName.trim()) {
+      localStorage.removeItem('userName');
+    }
   };
 
   useEffect(() => {
@@ -415,13 +454,19 @@ function App() {
   const totalRoomScore = roomData?.players.reduce((sum, player) => sum + player.score, 0) ?? 0;
   const currentUserNameKey = userName.trim().toLowerCase();
 
-  const getCurrentPlayer = (players: Player[] = []) =>
-    players.find(
-      (player) =>
-        player.id === socket.id ||
-        player.id === playerId ||
-        (currentUserNameKey && player.name.trim().toLowerCase() === currentUserNameKey),
-    ) ?? null;
+  const getCurrentPlayer = (players: Player[] = []) => {
+    const currentToken = localStorage.getItem('playerToken');
+
+    return (
+      players.find(
+        (player) =>
+          (currentToken && player.playerToken && player.playerToken === currentToken) ||
+          player.id === socket.id ||
+          player.id === playerId ||
+          (currentUserNameKey && player.name.trim().toLowerCase() === currentUserNameKey),
+      ) ?? null
+    );
+  };
 
   const getRankLabel = (index: number) => {
     if (index === 0) return '🏆';

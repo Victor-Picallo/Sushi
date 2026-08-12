@@ -7,6 +7,7 @@ interface Player {
   id: string;
   name: string;
   score: number;
+  playerToken?: string;
 }
 
 interface Room {
@@ -32,6 +33,15 @@ const io = new Server(server, {
 
 const rooms: Rooms = {};
 
+const normalizeToken = (value?: string): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+};
+
 io.on('connection', (socket: Socket) => {
   console.log('Usuario conectado:', socket.id);
 
@@ -42,13 +52,17 @@ socket.on(
           roomId,
           userName,
           creatorToken,
-        }: { roomId: string; userName: string; creatorToken?: string },
+          playerToken,
+        }: { roomId: string; userName: string; creatorToken?: string; playerToken?: string },
         callback?: (room: Room) => void,
       ) => {
         socket.join(roomId);
         const normalizedName = userName.trim();
+        const normalizedCreatorToken = normalizeToken(creatorToken);
+        const normalizedToken = normalizeToken(playerToken) || normalizeToken(socket.data.playerToken) || socket.id;
         socket.data.userName = normalizedName;
         socket.data.roomId = roomId;
+        socket.data.playerToken = normalizedToken;
 
         if (!rooms[roomId]) {
           rooms[roomId] = {
@@ -56,28 +70,37 @@ socket.on(
             players: [],
             creatorId: socket.id,
             creatorName: normalizedName,
-            creatorToken: creatorToken || crypto.randomUUID(),
+            creatorToken: normalizedCreatorToken || crypto.randomUUID(),
             isClosed: false,
           };
-        } else if (creatorToken && rooms[roomId].creatorToken === creatorToken) {
+        } else if (normalizedCreatorToken && rooms[roomId].creatorToken === normalizedCreatorToken) {
           rooms[roomId].creatorId = socket.id;
         }
 
         const existingPlayer = rooms[roomId].players.find(
-          (player) => player.id === socket.id || player.name.trim().toLowerCase() === normalizedName.toLowerCase(),
+          (player) =>
+            (normalizeToken(player.playerToken) && normalizeToken(player.playerToken) === normalizedToken) ||
+            player.id === socket.id ||
+            player.name.trim().toLowerCase() === normalizedName.toLowerCase(),
         );
 
         if (!existingPlayer) {
-          rooms[roomId].players.push({ id: socket.id, name: normalizedName, score: 0 });
+          rooms[roomId].players.push({
+            id: socket.id,
+            name: normalizedName,
+            score: 0,
+            playerToken: normalizedToken,
+          });
         } else {
           if (existingPlayer.id !== socket.id) {
             existingPlayer.id = socket.id;
           }
+          existingPlayer.playerToken = normalizedToken;
           existingPlayer.name = normalizedName;
         }
 
-        if (creatorToken && rooms[roomId].creatorToken === creatorToken) {
-          rooms[roomId].creatorName = userName;
+        if (normalizedCreatorToken && rooms[roomId].creatorToken === normalizedCreatorToken) {
+          rooms[roomId].creatorName = normalizedName;
         }
 
         io.to(roomId).emit('room_data', rooms[roomId]);
@@ -90,8 +113,12 @@ socket.on(
     if (!room || room.isClosed) return;
 
     const currentName = String(socket.data.userName || '').trim();
+    const currentToken = normalizeToken(socket.data.playerToken) || '';
     const player = room.players.find(
-      (p) => p.id === socket.id || (currentName && p.name.trim().toLowerCase() === currentName.toLowerCase()),
+      (p) =>
+        (currentToken && normalizeToken(p.playerToken) === currentToken) ||
+        p.id === socket.id ||
+        (currentName && p.name.trim().toLowerCase() === currentName.toLowerCase()),
     );
 
     if (player) {
@@ -114,8 +141,12 @@ socket.on(
       if (!room) return;
 
       const currentName = String(socket.data.userName || '').trim();
+      const currentToken = normalizeToken(socket.data.playerToken) || '';
       const player = room.players.find(
-        (p) => p.id === socket.id || (currentName && p.name.trim().toLowerCase() === currentName.toLowerCase()),
+        (p) =>
+          (currentToken && normalizeToken(p.playerToken) === currentToken) ||
+          p.id === socket.id ||
+          (currentName && p.name.trim().toLowerCase() === currentName.toLowerCase()),
       );
       if (!player) {
         return;
@@ -132,8 +163,12 @@ socket.on(
     if (!room) return;
 
     const currentName = String(socket.data.userName || '').trim();
+    const currentToken = normalizeToken(socket.data.playerToken) || '';
     const playerIndex = room.players.findIndex(
-      (player) => player.id === socket.id || (currentName && player.name.trim().toLowerCase() === currentName.toLowerCase()),
+      (player) =>
+        (currentToken && normalizeToken(player.playerToken) === currentToken) ||
+        player.id === socket.id ||
+        (currentName && player.name.trim().toLowerCase() === currentName.toLowerCase()),
     );
     if (playerIndex !== -1) {
       room.players.splice(playerIndex, 1);
@@ -148,19 +183,25 @@ socket.on(
 
   socket.on('disconnect', () => {
     const currentName = String(socket.data.userName || '').trim();
+    const currentToken = normalizeToken(socket.data.playerToken) || '';
     const roomId = String(socket.data.roomId || '');
 
     if (roomId && rooms[roomId]) {
       const room = rooms[roomId];
       const playerIndex = room.players.findIndex(
-        (player) => player.id === socket.id || (currentName && player.name.trim().toLowerCase() === currentName.toLowerCase()),
+        (player) =>
+          (currentToken && normalizeToken(player.playerToken) === currentToken) ||
+          player.id === socket.id ||
+          (currentName && player.name.trim().toLowerCase() === currentName.toLowerCase()),
       );
 
       if (playerIndex !== -1) {
         const player = room.players[playerIndex];
         if (player) {
-          player.id = player.id;
           player.name = player.name.trim() || currentName || player.name;
+          if (currentToken) {
+            player.playerToken = currentToken;
+          }
         }
       }
 
@@ -173,13 +214,19 @@ socket.on(
       if (!room) continue;
 
       const playerIndex = room.players.findIndex(
-        (player) => player.id === socket.id || (currentName && player.name.trim().toLowerCase() === currentName.toLowerCase()),
+        (player) =>
+          (currentToken && normalizeToken(player.playerToken) === currentToken) ||
+          player.id === socket.id ||
+          (currentName && player.name.trim().toLowerCase() === currentName.toLowerCase()),
       );
 
       if (playerIndex !== -1) {
         const player = room.players[playerIndex];
         if (player) {
           player.name = player.name.trim() || currentName || player.name;
+          if (currentToken) {
+            player.playerToken = currentToken;
+          }
         }
       }
 
