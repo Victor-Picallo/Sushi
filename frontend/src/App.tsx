@@ -622,16 +622,20 @@ function App() {
           <h2>{roomId}</h2>
         </div>
 
+        <div className="room-total-counter-section">
+          <div className="room-total-counter" aria-live="polite">
+            <span className="room-total-label">Total sala</span>
+            <strong>{totalRoomScore}</strong>
+            <span className="room-total-unit">🍣</span>
+          </div>
+        </div>
+
         {!isRoomClosed && (
-          <div className="room-action-container">
-            <div className="room-total-counter" aria-live="polite">
-              <span className="room-total-label">Total sala</span>
-              <strong>{totalRoomScore}</strong>
-              <span className="room-total-unit">🍣</span>
+          <div className="global-score-buttons">
+            <div className="global-buttons-wrap">
+              <button type="button" className="button button-secondary small-button" onClick={() => updateScore(-1)}>-</button>
+              <button type="button" className="button button-secondary small-button" onClick={() => updateScore(1)}>+</button>
             </div>
-            <button type="button" className="button button-secondary finish-button" onClick={finishCount}>
-              Terminar recuento
-            </button>
           </div>
         )}
 
@@ -714,12 +718,6 @@ function App() {
                             </span>
                           ))}
                         </div>
-                        {isCurrentPlayer && !isRoomClosed && (
-                          <div className="score-buttons">
-                            <button type="button" className="small-button" onClick={() => updateScore(-1)}>-</button>
-                            <button type="button" className="small-button" onClick={() => updateScore(1)}>+</button>
-                          </div>
-                        )}
                       </div>
                     </li>
                   );
@@ -733,6 +731,12 @@ function App() {
             </div>
           )}
         </section>
+
+        {!isRoomClosed && (
+          <button type="button" className="button button-secondary finish-button" onClick={finishCount}>
+            Terminar recuento
+          </button>
+        )}
       </div>
 
       {celebration && celebration.show && (

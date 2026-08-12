@@ -640,28 +640,28 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 0.4rem;
-  margin-bottom: 1.25rem;
-  padding: 1.5rem 1.25rem;
-  border-radius: 22px;
+  gap: 0.2rem;
+  margin-bottom: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-radius: 18px;
   background: rgba(255, 255, 255, 0.12);
   border: 3px solid rgba(31, 41, 59, 0.9);
-  box-shadow: 0 8px 0 rgba(31, 41, 59, 0.8);
+  box-shadow: 0 6px 0 rgba(31, 41, 59, 0.8);
   text-align: center;
 }
 
 .room-header h2 {
   color: #1f2937;
   font-family: var(--heading);
-  font-size: clamp(2rem, 4vw, 3rem);
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
   letter-spacing: -0.05em;
-  margin: 0.1rem 0;
+  margin: 0;
   overflow-wrap: anywhere;
 }
 
 .room-label {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -703,53 +703,66 @@ body {
 }
 
 .room-action-container {
+  display: none;
+}
+
+.room-total-counter-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 1.5rem;
   width: 100%;
-  transform: translateY(20px);
-  padding-top: 0.4rem;
-  position: relative;
-  z-index: 1;
-  gap: 0.8rem;
+  margin-bottom: 1rem;
+  padding: 0 1rem;
 }
 
 .room-total-counter {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.6rem;
-  padding: 0.75rem 1.3rem;
-  min-width: 220px;
+  gap: 0.5rem;
+  padding: 0.6rem 1.1rem;
+  min-width: 180px;
   border: 2px solid rgba(31, 41, 59, 0.9);
   border-radius: 999px;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 238, 234, 0.9));
-  box-shadow: 0 8px 0 rgba(31, 41, 59, 0.8);
+  box-shadow: 0 6px 0 rgba(31, 41, 59, 0.8);
   color: #1f2937;
   font-family: var(--heading);
   font-weight: 800;
-  transform: translateY(0);
   animation: totalPulse 2.3s ease-in-out infinite;
 }
 
 .room-total-label {
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: #7a544f;
 }
 
 .room-total-counter strong {
-  font-size: clamp(2rem, 3vw, 3.2rem);
+  font-size: clamp(1.6rem, 2.5vw, 2.2rem);
   line-height: 1;
   letter-spacing: -0.08em;
 }
 
 .room-total-unit {
-  font-size: 1.35rem;
+  font-size: 1.2rem;
   transform: translateY(-1px);
+}
+
+.global-score-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  width: 100%;
+  margin-bottom: 1.5rem;
+  padding: 0 1rem;
+}
+
+.global-buttons-wrap {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
 }
 
 @keyframes totalPulse {
@@ -765,20 +778,21 @@ body {
 }
 
 .finish-button {
-  margin-top: 0;
   width: 100%;
   max-width: 320px;
+  margin: 2rem auto 1rem;
   background: linear-gradient(135deg, #ff7b62, #ea5e4d 55%, #df4e41);
   color: #ffffff;
   border: 2px solid rgba(31, 41, 59, 0.9);
   border-radius: 16px;
   box-shadow: 0 12px 0 rgba(31, 41, 59, 0.85);
-  padding: 0.95rem 1.5rem;
+  padding: 1rem 1.5rem;
   font-size: 1rem;
   font-weight: 700;
   font-family: var(--heading);
   letter-spacing: 0.02em;
   transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  display: block;
 }
 
 .finish-button:hover {
@@ -873,8 +887,7 @@ body {
 }
 
 .scoreboard {
-  padding-top: 1.75rem;
-  transform: translateY(8px);
+  padding-top: 1rem;
   width: 100%;
 }
 
@@ -1006,10 +1019,11 @@ body {
   border: 2px solid rgba(31, 41, 59, 0.82);
   border-radius: 999px;
   box-shadow: 0 5px 0 rgba(31, 41, 59, 0.82);
-  padding: 0.5rem 0.85rem;
-  min-width: 3.5rem;
+  padding: 0.5rem 1.1rem;
+  min-width: 4rem;
   text-align: center;
   display: inline-block;
+  margin-right: 1rem;
 }
 
 .floating-sushi {
@@ -1299,12 +1313,36 @@ body {
   }
 
   .room-header {
-    padding: 1rem 1rem;
-    margin-bottom: 1rem;
+    padding: 0.85rem 0.9rem;
+    margin-bottom: 0.6rem;
   }
 
   .room-header h2 {
-    font-size: 2rem;
+    font-size: 1.6rem;
+  }
+
+  .room-total-counter-section {
+    margin-bottom: 0.8rem;
+    padding: 0;
+  }
+
+  .room-total-counter {
+    min-width: 150px;
+    padding: 0.5rem 0.9rem;
+  }
+
+  .room-total-counter strong {
+    font-size: clamp(1.2rem, 2vw, 1.8rem);
+  }
+
+  .global-score-buttons {
+    margin-bottom: 1rem;
+    padding: 0;
+    gap: 0.8rem;
+  }
+
+  .global-buttons-wrap {
+    gap: 0.5rem;
   }
 
   .room-label,
