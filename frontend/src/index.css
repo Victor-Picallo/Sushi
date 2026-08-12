@@ -55,11 +55,13 @@ body {
   width: 100%;
   min-width: 0;
   overflow-x: hidden;
+  height: 100%;
 }
 
 body {
   margin: 0;
   font-family: var(--sans);
+  overscroll-behavior-y: contain;
 }
 
 h1,
@@ -112,6 +114,7 @@ body {
 
 .app-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1080,8 +1083,26 @@ body {
 }
 
 @media (max-width: 768px) {
+  html,
+  body,
+  #root {
+    height: 100%;
+    min-height: 100dvh;
+  }
+
   .app-shell {
+    min-height: 100dvh;
+    height: 100dvh;
     padding: 1.5rem 1rem;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    align-items: flex-start;
+  }
+
+  .app-card.room-card {
+    width: min(100%, 900px);
+    min-height: min(100dvh - 2rem, auto);
+    margin: 0 auto;
   }
 
   .modal-card,
