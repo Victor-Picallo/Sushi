@@ -701,6 +701,8 @@ body {
 
 .room-action-container {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
   margin-bottom: 1.5rem;
   width: 100%;
@@ -708,6 +710,55 @@ body {
   padding-top: 0.4rem;
   position: relative;
   z-index: 1;
+  gap: 0.8rem;
+}
+
+.room-total-counter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1.3rem;
+  min-width: 220px;
+  border: 2px solid rgba(31, 41, 59, 0.9);
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 238, 234, 0.9));
+  box-shadow: 0 8px 0 rgba(31, 41, 59, 0.8);
+  color: #1f2937;
+  font-family: var(--heading);
+  font-weight: 800;
+  transform: translateY(0);
+  animation: totalPulse 2.3s ease-in-out infinite;
+}
+
+.room-total-label {
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #7a544f;
+}
+
+.room-total-counter strong {
+  font-size: clamp(2rem, 3vw, 3.2rem);
+  line-height: 1;
+  letter-spacing: -0.08em;
+}
+
+.room-total-unit {
+  font-size: 1.35rem;
+  transform: translateY(-1px);
+}
+
+@keyframes totalPulse {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 8px 0 rgba(31, 41, 59, 0.8);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 12px 0 rgba(31, 41, 59, 0.82);
+  }
 }
 
 .finish-button {
