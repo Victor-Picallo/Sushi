@@ -81,6 +81,7 @@ function App() {
   const [creatorToken, setCreatorToken] = useState(() => localStorage.getItem('creatorToken') || '');
   const [prevOrder, setPrevOrder] = useState<string[]>([]);
   const [movedPlayerIds, setMovedPlayerIds] = useState<string[]>([]);
+  const [floatingSushi, setFloatingSushi] = useState<{ id: number; x: number; y: number }[]>([]);
   const prevRoomClosedRef = useRef(false);
 
   // Fullscreen celebration overlay state
@@ -130,6 +131,10 @@ function App() {
         return previousIndex > -1 && previousIndex > index;
       });
 
+      if (typeof socket.id === 'string') {
+        setPlayerId(socket.id);
+      }
+
       if (!creatorToken && data.creatorToken) {
         setCreatorToken(data.creatorToken);
         localStorage.setItem('creatorToken', data.creatorToken);
@@ -139,8 +144,8 @@ function App() {
       prevRoomClosedRef.current = data.isClosed;
 
       // Check current player's score for 10-multiples milestone
-      const currentSocketId = socket.id;
-      const me = sortedPlayers.find((p) => p.id === currentSocketId || (userName && p.name === userName));
+      const currentSocketId = socket.id ?? playerId;
+      const me = sortedPlayers.find((p) => p.id === currentSocketId || (userName && p.name.trim().toLowerCase() === userName.trim().toLowerCase()));
       if (me) {
         const currentScore = me.score;
         const previousScore = prevScoreRef.current;
@@ -272,6 +277,9 @@ function App() {
       (room: Room) => {
         const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
         setRoomData({ ...room, players: sortedPlayers });
+        if (typeof socket.id === 'string') {
+          setPlayerId(socket.id);
+        }
         setInRoom(true);
         setIsJoining(false);
       },
@@ -279,7 +287,16 @@ function App() {
   };
 
   const updateScore = (amount: number) => {
-    if (roomData?.isClosed) return;
+    if (!roomId || roomData?.isClosed) return;
+
+    if (amount > 0) {
+      const id = Date.now() + Math.random();
+      setFloatingSushi((current) => [...current, { id, x: 52, y: 10 }]);
+      window.setTimeout(() => {
+        setFloatingSushi((current) => current.filter((item) => item.id !== id));
+      }, 850);
+    }
+
     socket.emit('update_score', { roomId, amount });
   };
 
@@ -335,7 +352,10 @@ function App() {
         <div className="app-shell">
           <div className="app-card">
             <div className="app-header">
-              <h1 className="app-title">Sushi</h1>
+              <div className="app-title-wrap">
+                <h1 className="app-title">SUSHI</h1>
+              </div>
+              <div className="app-jp">寿司屋</div>
               <p>Crea una sala nueva o únete a una existente para competir por el mejor score.</p>
             </div>
 
@@ -481,7 +501,10 @@ function App() {
               )}
               <ul className="player-list">
                 {roomData.players.map((player, index) => {
-                  const isCurrentPlayer = player.id === playerId || player.name === userName;
+                  const isCurrentPlayer =
+                    player.id === playerId ||
+                    player.id === socket.id ||
+                    player.name.trim().toLowerCase() === userName.trim().toLowerCase();
                   return (
                     <li key={player.id} className={`player-row ${movedPlayerIds.includes(player.id) ? 'player-moved' : ''}`}>
                       <div>
@@ -489,11 +512,18 @@ function App() {
                         <span className="player-name">{player.name.toUpperCase()}</span>
                       </div>
                       <div className="player-actions">
-                        <span className="player-score">{player.score} 🍣</span>
+                        <div className="score-badge-wrap">
+                          <span className="player-score">{player.score} 🍣</span>
+                          {isCurrentPlayer && floatingSushi.length > 0 && floatingSushi.map((item) => (
+                            <span key={item.id} className="floating-sushi" style={{ left: `${item.x}%`, top: `${item.y}%` }} aria-hidden="true">
+                              🍣
+                            </span>
+                          ))}
+                        </div>
                         {isCurrentPlayer && !isRoomClosed && (
                           <div className="score-buttons">
-                            <button className="small-button" onClick={() => updateScore(-1)}>-</button>
-                            <button className="small-button" onClick={() => updateScore(1)}>+</button>
+                            <button type="button" className="small-button" onClick={() => updateScore(-1)}>-</button>
+                            <button type="button" className="small-button" onClick={() => updateScore(1)}>+</button>
                           </div>
                         )}
                       </div>

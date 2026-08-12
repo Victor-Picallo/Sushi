@@ -46,13 +46,16 @@ socket.on(
         callback?: (room: Room) => void,
       ) => {
         socket.join(roomId);
+        const normalizedName = userName.trim();
+        socket.data.userName = normalizedName;
+        socket.data.roomId = roomId;
 
         if (!rooms[roomId]) {
           rooms[roomId] = {
             id: roomId,
             players: [],
             creatorId: socket.id,
-            creatorName: userName,
+            creatorName: normalizedName,
             creatorToken: creatorToken || crypto.randomUUID(),
             isClosed: false,
           };
@@ -61,17 +64,16 @@ socket.on(
         }
 
         const existingPlayer = rooms[roomId].players.find(
-          (player) => player.id === socket.id || player.name === userName,
+          (player) => player.id === socket.id || player.name.trim().toLowerCase() === normalizedName.toLowerCase(),
         );
 
         if (!existingPlayer) {
-          rooms[roomId].players.push({ id: socket.id, name: userName, score: 0 });
+          rooms[roomId].players.push({ id: socket.id, name: normalizedName, score: 0 });
         } else {
           if (existingPlayer.id !== socket.id) {
             existingPlayer.id = socket.id;
           }
-          // Keep display name in sync if the same player reconnects or edits their name.
-          existingPlayer.name = userName;
+          existingPlayer.name = normalizedName;
         }
 
         if (creatorToken && rooms[roomId].creatorToken === creatorToken) {
@@ -87,8 +89,14 @@ socket.on(
     const room = rooms[roomId];
     if (!room || room.isClosed) return;
 
-    const player = room.players.find((p) => p.id === socket.id);
+    const currentName = String(socket.data.userName || '').trim();
+    const player = room.players.find(
+      (p) => p.id === socket.id || (currentName && p.name.trim().toLowerCase() === currentName.toLowerCase()),
+    );
+
     if (player) {
+      player.id = socket.id;
+      player.name = player.name.trim() || currentName || player.name;
       player.score += amount;
       if (player.score < 0) player.score = 0;
 
@@ -105,7 +113,10 @@ socket.on(
       const room = rooms[roomId];
       if (!room) return;
 
-      const player = room.players.find((p) => p.id === socket.id);
+      const currentName = String(socket.data.userName || '').trim();
+      const player = room.players.find(
+        (p) => p.id === socket.id || (currentName && p.name.trim().toLowerCase() === currentName.toLowerCase()),
+      );
       if (!player) {
         return;
       }
@@ -120,7 +131,10 @@ socket.on(
     const room = rooms[roomId];
     if (!room) return;
 
-    const playerIndex = room.players.findIndex((player) => player.id === socket.id);
+    const currentName = String(socket.data.userName || '').trim();
+    const playerIndex = room.players.findIndex(
+      (player) => player.id === socket.id || (currentName && player.name.trim().toLowerCase() === currentName.toLowerCase()),
+    );
     if (playerIndex !== -1) {
       room.players.splice(playerIndex, 1);
     }
@@ -137,7 +151,10 @@ socket.on(
       const room = rooms[roomId];
       if (!room) continue;
 
-      const playerIndex = room.players.findIndex((player) => player.id === socket.id);
+      const currentName = String(socket.data.userName || '').trim();
+      const playerIndex = room.players.findIndex(
+        (player) => player.id === socket.id || (currentName && player.name.trim().toLowerCase() === currentName.toLowerCase()),
+      );
 
       if (playerIndex !== -1) {
         room.players.splice(playerIndex, 1);
