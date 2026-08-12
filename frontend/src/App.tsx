@@ -68,6 +68,20 @@ type Room = {
   isClosed: boolean;
 };
 
+type RoomHistoryItem = {
+  roomId: string;
+  userName: string;
+  creatorToken?: string;
+  lastJoinedAt: number;
+  isClosed?: boolean;
+};
+
+type RoomSummary = {
+  id: string;
+  isClosed: boolean;
+  players: { name: string; score: number }[];
+};
+
 function App() {
   const [inRoom, setInRoom] = useState(false);
   const [roomId, setRoomId] = useState('');
@@ -81,6 +95,15 @@ function App() {
   const [creatorToken, setCreatorToken] = useState(() => localStorage.getItem('creatorToken') || '');
   const [movedPlayerIds, setMovedPlayerIds] = useState<string[]>([]);
   const [floatingSushi, setFloatingSushi] = useState<{ id: number; x: number; y: number }[]>([]);
+  const [roomHistory, setRoomHistory] = useState<RoomHistoryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('sushi_room_history');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [roomsSummaryMap, setRoomsSummaryMap] = useState<Record<string, RoomSummary>>({});
   const prevRoomClosedRef = useRef(false);
   const prevOrderRef = useRef<string[]>([]);
   const sessionRestoreKeyRef = useRef<string | null>(null);
@@ -97,6 +120,43 @@ function App() {
     gifUrl: string;
   } | null>(null);
   const prevScoreRef = useRef<number | null>(null);
+
+  const addToHistory = (id: string, name: string, token?: string, isClosed: boolean = false) => {
+    setRoomHistory((prev) => {
+      const filtered = prev.filter((item) => item.roomId !== id);
+      const updated = [{ roomId: id, userName: name, creatorToken: token, lastJoinedAt: Date.now(), isClosed }, ...filtered].slice(0, 10);
+      try {
+        localStorage.setItem('sushi_room_history', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+  };
+
+  const updateHistoryClosedState = (id: string, isClosed: boolean) => {
+    setRoomHistory((prev) => {
+      const updated = prev.map((item) => (item.roomId === id ? { ...item, isClosed } : item));
+      try {
+        localStorage.setItem('sushi_room_history', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+  };
+
+  const removeFromHistory = (id: string) => {
+    setRoomHistory((prev) => {
+      const updated = prev.filter((item) => item.roomId !== id);
+      try {
+        localStorage.setItem('sushi_room_history', JSON.stringify(updated));
+      } catch (e) {
+        console.error(e);
+      }
+      return updated;
+    });
+  };
 
   const ensurePlayerToken = () => {
     const savedToken = localStorage.getItem('playerToken');
@@ -217,6 +277,7 @@ function App() {
 
       if (data.id) {
         lastKnownRoomRef.current = data.id;
+        updateHistoryClosedState(data.id, !!data.isClosed);
       }
 
       if (typeof socket.id === 'string') {
@@ -329,6 +390,23 @@ function App() {
     restoreRoomSession();
   }, []);
 
+  useEffect(() => {
+    if (inRoom || roomHistory.length === 0) return;
+
+    const fetchSummary = () => {
+      const roomIds = roomHistory.map((h) => h.roomId);
+      socket.emit('get_rooms_summary', roomIds, (summary: Record<string, RoomSummary>) => {
+        if (summary) {
+          setRoomsSummaryMap(summary);
+        }
+      });
+    };
+
+    fetchSummary();
+    const interval = window.setInterval(fetchSummary, 5000);
+    return () => window.clearInterval(interval);
+  }, [inRoom, roomHistory]);
+
   const createRoom = () => {
     if (!userName.trim()) {
       setMessage('Introduce tu nombre para continuar.');
@@ -344,6 +422,7 @@ function App() {
     setRoomId(generatedId);
     setMessage('');
     persistRoomSession(generatedId, userName, generatedToken);
+    addToHistory(generatedId, userName, generatedToken);
     setIsJoining(true);
     setShowRoomCreatedModal(true);
     socket.emit(
@@ -374,10 +453,38 @@ function App() {
     const activePlayerToken = ensurePlayerToken();
     setMessage('');
     persistRoomSession(normalizedRoomId, userName, creatorToken);
+    addToHistory(normalizedRoomId, userName, creatorToken);
     setIsJoining(true);
     socket.emit(
       'join_room',
       { roomId: normalizedRoomId, userName, creatorToken, playerToken: activePlayerToken },
+      (room: Room) => {
+        const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
+        setRoomData({ ...room, players: sortedPlayers });
+        if (typeof socket.id === 'string') {
+          setPlayerId(socket.id);
+        }
+        setInRoom(true);
+        setIsJoining(false);
+      },
+    );
+  };
+
+  const rejoinFromHistory = (item: RoomHistoryItem) => {
+    const targetName = userName.trim() || item.userName;
+    setUserName(targetName);
+    setRoomId(item.roomId);
+    if (item.creatorToken) {
+      setCreatorToken(item.creatorToken);
+    }
+    const activePlayerToken = ensurePlayerToken();
+    setMessage('');
+    persistRoomSession(item.roomId, targetName, item.creatorToken || creatorToken);
+    addToHistory(item.roomId, targetName, item.creatorToken || creatorToken);
+    setIsJoining(true);
+    socket.emit(
+      'join_room',
+      { roomId: item.roomId, userName: targetName, creatorToken: item.creatorToken || creatorToken, playerToken: activePlayerToken },
       (room: Room) => {
         const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
         setRoomData({ ...room, players: sortedPlayers });
@@ -413,6 +520,7 @@ function App() {
   const finishCount = () => {
     socket.emit('finish_count', { roomId }, (room: Room) => {
       if (room?.isClosed) {
+        updateHistoryClosedState(room.id, true);
         const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
         setRoomData({ ...room, players: sortedPlayers });
         setShowPodium(true);
@@ -420,9 +528,14 @@ function App() {
     });
   };
 
-  const leaveRoom = () => {
+  const goBackToLanding = () => {
+    setInRoom(false);
+  };
+
+  const leaveRoomPermanently = () => {
     if (roomId) {
       socket.emit('leave_room', { roomId });
+      removeFromHistory(roomId);
     }
 
     setInRoom(false);
@@ -480,15 +593,17 @@ function App() {
   if (!inRoom) {
     return (
       <>
-        <div className="app-shell">
-          <div className="app-card">
+        <div className="app-shell landing-shell">
+          <div className="app-card landing-card">
             <div className="app-header">
-              <img src="/favicon.svg" alt="Sushi Icon" className="app-favicon" />
-              <div className="app-title-wrap">
-                <h1 className="app-title">SUSHI</h1>
+              <div className="logo-badge-container">
+                <div className="sushi-circle-badge">
+                  <h1 className="app-title">SUSHI</h1>
+                  <img src="/favicon.svg" alt="Sushi Icon" className="app-favicon" />
+                  <div className="app-jp">寿司屋</div>
+                </div>
               </div>
-              <div className="app-jp">寿司屋</div>
-              <p>Crea una sala nueva o únete a una existente para competir por el mejor score.</p>
+              <p className="app-subtitle">Crea una sala nueva o únete a una existente para competir por el mejor score.</p>
             </div>
 
             <div className="form-grid">
@@ -511,7 +626,7 @@ function App() {
                   pattern="[0-9]*"
                   maxLength={4}
                   onChange={(e) => setRoomId(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  placeholder="ID de la sesion"
+                  placeholder="ID de la sesión"
                 />
               </label>
 
@@ -526,6 +641,59 @@ function App() {
 
               {message && <p className="form-error">{message}</p>}
             </div>
+
+            {roomHistory.length > 0 && (
+              <div className="recent-rooms-section">
+                <h3 className="recent-rooms-title">Salas recientes 📜</h3>
+                <div className="recent-rooms-list">
+                  {roomHistory.map((item) => {
+                    const summary = roomsSummaryMap[item.roomId];
+                    const isClosed = summary ? summary.isClosed : (item.isClosed ?? false);
+                    const players = summary?.players ?? [];
+                    const playersCount = players.length;
+                    const playerNames = players.map((p) => p.name).join(', ');
+
+                    return (
+                      <div key={item.roomId} className="recent-room-card">
+                        <div className="recent-room-info">
+                          <div className="recent-room-header">
+                            <span className="recent-room-id">Sala #{item.roomId}</span>
+                            <span className={`recent-status-pill ${isClosed ? 'closed' : 'active'}`}>
+                              {isClosed ? '🔒 Cerrada' : '🟢 Activa'}
+                            </span>
+                          </div>
+                          {playersCount > 0 ? (
+                            <p className="recent-room-players">
+                              <strong>{playersCount} {playersCount === 1 ? 'jugador' : 'jugadores'}</strong>: {playerNames}
+                            </p>
+                          ) : (
+                            <p className="recent-room-players muted">Toca 'Entrar' para unirte</p>
+                          )}
+                        </div>
+
+                        <div className="recent-room-actions">
+                          <button
+                            type="button"
+                            className="button button-rejoin"
+                            onClick={() => rejoinFromHistory(item)}
+                          >
+                            Entrar
+                          </button>
+                          <button
+                            type="button"
+                            className="remove-history-btn"
+                            title="Quitar del historial"
+                            onClick={() => removeFromHistory(item.roomId)}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
         {showPodium && roomData && (
@@ -612,11 +780,17 @@ function App() {
 
       <div className="app-card room-card">
         <div className="room-top-bar">
-          <button type="button" className="back-link" onClick={leaveRoom}>
-            Salir
-          </button>
-          <div className={`status-chip ${isRoomClosed ? 'closed' : ''}`}>
-            {isRoomClosed ? 'Recuento cerrado' : 'Partida en curso'}
+          <div className="room-nav-group">
+            <button type="button" className="back-link" onClick={goBackToLanding}>
+              ← Atrás
+            </button>
+            {/* <button type="button" className="leave-link" onClick={leaveRoomPermanently} title="Abandonar la sala definitivamente">
+              Abandonar
+            </button> */}
+          </div>
+          <div className={`status-chip ${isRoomClosed ? 'closed' : 'active'}`}>
+            <span className="status-dot"></span>
+            <span>{isRoomClosed ? '🔒 Recuento cerrado' : 'Partida en curso'}</span>
           </div>
         </div>
 

@@ -181,6 +181,30 @@ socket.on(
     }
   });
 
+  socket.on(
+    'get_rooms_summary',
+    (
+      roomIds: string[],
+      callback?: (
+        summary: Record<string, { id: string; isClosed: boolean; players: { name: string; score: number }[] }>,
+      ) => void,
+    ) => {
+      const summary: Record<string, { id: string; isClosed: boolean; players: { name: string; score: number }[] }> = {};
+      if (Array.isArray(roomIds)) {
+        for (const id of roomIds) {
+          if (rooms[id]) {
+            summary[id] = {
+              id: rooms[id].id,
+              isClosed: rooms[id].isClosed,
+              players: rooms[id].players.map((p) => ({ name: p.name, score: p.score })),
+            };
+          }
+        }
+      }
+      if (callback) callback(summary);
+    },
+  );
+
   socket.on('disconnect', () => {
     const currentName = String(socket.data.userName || '').trim();
     const currentToken = normalizeToken(socket.data.playerToken) || '';
