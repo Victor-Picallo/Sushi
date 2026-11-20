@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { RoomHistoryItem, RoomSummary } from '../types/sushi';
 
 type LandingViewProps = {
@@ -6,7 +7,6 @@ type LandingViewProps = {
   message: string;
   roomHistory: RoomHistoryItem[];
   roomsSummaryMap: Record<string, RoomSummary>;
-  onUserNameChange: (value: string) => void;
   onRoomIdChange: (value: string) => void;
   onCreateRoom: () => void;
   onJoinRoom: () => void;
@@ -20,13 +20,14 @@ export function LandingView({
   message,
   roomHistory,
   roomsSummaryMap,
-  onUserNameChange,
   onRoomIdChange,
   onCreateRoom,
   onJoinRoom,
   onRejoinFromHistory,
   onRemoveFromHistory,
 }: LandingViewProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="app-shell landing-shell">
       <div className="app-card landing-card">
@@ -38,24 +39,15 @@ export function LandingView({
               <div className="app-jp">寿司屋</div>
             </div>
           </div>
-          <p className="app-subtitle">
-            Crea una sala nueva o únete a una existente para competir por el mejor score.
-          </p>
+          <div className="player-greeting-pill">
+            🍣 <span>{userName || 'Sushi Lover'}</span>
+          </div>
+          <p className="app-subtitle">{t('landing.subtitle')}</p>
         </div>
 
         <div className="form-grid">
           <label className="field">
-            <span>Tu nombre</span>
-            <input
-              className="input"
-              value={userName}
-              onChange={(e) => onUserNameChange(e.target.value)}
-              placeholder="Tu nombre"
-            />
-          </label>
-
-          <label className="field">
-            <span>ID de la sala</span>
+            <span>{t('landing.roomId')}</span>
             <input
               className="input"
               value={roomId}
@@ -63,16 +55,16 @@ export function LandingView({
               pattern="[0-9]*"
               maxLength={4}
               onChange={(e) => onRoomIdChange(e.target.value.replace(/\D/g, '').slice(0, 4))}
-              placeholder="ID de la sesión"
+              placeholder={t('landing.roomIdPlaceholder')}
             />
           </label>
 
-          <div className="button-row">
+          <div className="button-row clean-button-row">
             <button type="button" className="button button-create" onClick={onCreateRoom}>
-              Crear sala
+              {t('landing.createRoom')}
             </button>
             <button type="button" className="button button-primary" onClick={onJoinRoom}>
-              Entrar a la sala
+              {t('landing.joinRoom')}
             </button>
           </div>
 
@@ -81,7 +73,7 @@ export function LandingView({
 
         {roomHistory.length > 0 && (
           <div className="recent-rooms-section">
-            <h3 className="recent-rooms-title">Salas recientes 📜</h3>
+            <h3 className="recent-rooms-title">{t('landing.recentRooms')}</h3>
             <div className="recent-rooms-list">
               {roomHistory.slice(0, 3).map((item) => {
                 const summary = roomsSummaryMap[item.roomId];
@@ -96,7 +88,7 @@ export function LandingView({
                       <div className="recent-room-header">
                         <span className="recent-room-id">Sala #{item.roomId}</span>
                         <span className={`recent-status-pill ${isClosed ? 'closed' : 'active'}`}>
-                          {isClosed ? '🔒 Cerrada' : '🟢 Activa'}
+                          {isClosed ? t('landing.closed') : t('landing.active')}
                         </span>
                       </div>
                       {playersCount > 0 ? (
@@ -107,7 +99,7 @@ export function LandingView({
                           : {playerNames}
                         </p>
                       ) : (
-                        <p className="recent-room-players muted">Toca 'Entrar' para unirte</p>
+                        <p className="recent-room-players muted">Toca '{t('landing.enter')}' para unirte</p>
                       )}
                     </div>
 
@@ -117,7 +109,7 @@ export function LandingView({
                         className="button button-rejoin"
                         onClick={() => onRejoinFromHistory(item)}
                       >
-                        Entrar
+                        {t('landing.enter')}
                       </button>
                       <button
                         type="button"

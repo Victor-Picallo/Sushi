@@ -1,47 +1,40 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useState, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fetchProfile, saveProfile } from '../services/api';
 import {
   clearAuthSession,
-  getStoredAuthToken,
   getStoredEmail,
   getStoredRole,
-  signInWithEmail,
-  signUpWithEmail,
   type UserRole,
 } from '../services/auth';
 import { compressImageToWebp } from '../utils/image';
 import { ensurePlayerToken } from '../utils/session';
+import { PrivacyModal } from './PrivacyModal';
 
 type ProfileViewProps = {
   userName: string;
   onUserNameChange: (name: string) => void;
+  onSignedOut: () => void;
 };
 
 const AVATAR_KEY = 'sushi_avatar_preview';
 
-export function ProfileView({ userName, onUserNameChange }: ProfileViewProps) {
+export function ProfileView({ userName, onUserNameChange, onSignedOut }: ProfileViewProps) {
   const { t, i18n } = useTranslation();
   const [avatarUrl, setAvatarUrl] = useState<string>(() => localStorage.getItem(AVATAR_KEY) || '');
   const [pendingAvatarDataUrl, setPendingAvatarDataUrl] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
-
-  const [authToken, setAuthToken] = useState<string>(() => getStoredAuthToken());
-  const [authEmail, setAuthEmail] = useState<string>(() => getStoredEmail());
   const [role, setRole] = useState<UserRole>(() => getStoredRole());
-  const [emailInput, setEmailInput] = useState('');
-  const [passwordInput, setPasswordInput] = useState('');
-  const [isSignUpMode, setIsSignUpMode] = useState(false);
-  const [authMsg, setAuthMsg] = useState('');
-  const [authError, setAuthError] = useState('');
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const authEmail = getStoredEmail();
 
   useEffect(() => {
     const token = ensurePlayerToken();
     fetchProfile(token)
       .then((profile) => {
         if (profile) {
-          if (profile.displayName && !userName) {
+          if (profile.displayName) {
             onUserNameChange(profile.displayName);
           }
           if (profile.avatarUrl) {
@@ -74,10 +67,12 @@ export function ProfileView({ userName, onUserNameChange }: ProfileViewProps) {
   const handleSave = async () => {
     setIsSaving(true);
     setSavedMsg('');
-    localStorage.setItem('userName', userName);
+    const cleanName = userName.trim() || 'Sushi Lover';
+    onUserNameChange(cleanName);
+    localStorage.setItem('userName', cleanName);
     try {
       const saved = await saveProfile(ensurePlayerToken(), {
-        displayName: userName.trim() || 'Sushi Lover',
+        displayName: cleanName,
         avatarDataUrl: pendingAvatarDataUrl,
       });
       if (saved.avatarUrl) {
@@ -85,7 +80,7 @@ export function ProfileView({ userName, onUserNameChange }: ProfileViewProps) {
         localStorage.setItem(AVATAR_KEY, saved.avatarUrl);
       }
       setPendingAvatarDataUrl(undefined);
-      setSavedMsg('Perfil guardado en PostgreSQL.');
+      setSavedMsg('Perfil actualizado en PostgreSQL.');
     } catch {
       setSavedMsg('Guardado en local (error conectando con el servidor).');
     } finally {
@@ -93,35 +88,14 @@ export function ProfileView({ userName, onUserNameChange }: ProfileViewProps) {
     }
   };
 
-  const handleAuthSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setAuthError('');
-    setAuthMsg('');
-    try {
-      const session = isSignUpMode
-        ? await signUpWithEmail(userName.trim() || emailInput.split('@')[0], emailInput, passwordInput)
-        : await signInWithEmail(emailInput, passwordInput);
-      setAuthToken(session.token);
-      setAuthEmail(session.email);
-      setRole(session.role);
-      setPasswordInput('');
-      setAuthMsg('Sesión iniciada correctamente.');
-    } catch (err) {
-      setAuthError(err instanceof Error ? err.message : 'Error de autenticación.');
-    }
-  };
-
   const handleSignOut = () => {
     clearAuthSession();
-    setAuthToken('');
-    setAuthEmail('');
-    setRole('user');
-    setAuthMsg('Sesión cerrada.');
+    onSignedOut();
   };
 
   return (
     <div className="app-shell tab-shell">
-      <div className="app-card tab-card">
+      <div className="app-card tab-card profile-card-airy">
         <div className="tab-header">
           <div className="profile-header-row">
             <h2>{t('profile.title')}</h2>
@@ -132,19 +106,23 @@ export function ProfileView({ userName, onUserNameChange }: ProfileViewProps) {
           <p>{t('profile.subtitle')}</p>
         </div>
 
-        <div className="profile-avatar-section">
+        <div className="profile-avatar-card">
           {avatarUrl ? (
             <img src={avatarUrl} alt="Avatar" className="profile-avatar-img" />
           ) : (
             <div className="profile-avatar-placeholder">🍣</div>
           )}
-          <label className="button button-secondary avatar-upload-btn">
-            {t('profile.changePhoto')}
-            <input type="file" accept="image/*" hidden onChange={handleAvatarChange} />
-          </label>
+          <div className="profile-avatar-meta">
+            <strong>{userName || 'Sushi Lover'}</strong>
+            <span className="muted small-text">{authEmail}</span>
+            <label className="button button-outline-clean avatar-upload-btn">
+              {t('profile.changePhoto')}
+              <input type="file" accept="image/*" hidden onChange={handleAvatarChange} />
+            </label>
+          </div>
         </div>
 
-        <div className="form-grid">
+        <div className="form-grid profile-form-spaced">
           <label className="field">
             <span>{t('profile.displayName')}</span>
             <input
@@ -169,7 +147,7 @@ export function ProfileView({ userName, onUserNameChange }: ProfileViewProps) {
 
           <button
             type="button"
-            className="button button-primary"
+            className="button button-primary full-width-btn"
             onClick={handleSave}
             disabled={isSaving}
           >
@@ -180,59 +158,24 @@ export function ProfileView({ userName, onUserNameChange }: ProfileViewProps) {
         </div>
 
         <div className="auth-box">
-          <h3>{t('profile.authTitle')}</h3>
-          {authToken ? (
-            <div className="auth-logged-in">
-              <p>
-                Conectado como <strong>{authEmail || 'Usuario'}</strong> ({role})
-              </p>
-              <button type="button" className="button button-secondary" onClick={handleSignOut}>
-                {t('profile.signOut')}
-              </button>
-            </div>
-          ) : (
-            <form className="form-grid" onSubmit={handleAuthSubmit}>
-              <label className="field">
-                <span>{t('profile.email')}</span>
-                <input
-                  type="email"
-                  className="input"
-                  required
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  placeholder="tu@email.com"
-                />
-              </label>
-              <label className="field">
-                <span>{t('profile.password')}</span>
-                <input
-                  type="password"
-                  className="input"
-                  required
-                  minLength={8}
-                  value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
-                  placeholder="••••••••"
-                />
-              </label>
-              <div className="button-row">
-                <button type="submit" className="button button-primary">
-                  {isSignUpMode ? t('profile.signUp') : t('profile.signIn')}
-                </button>
-                <button
-                  type="button"
-                  className="button button-secondary"
-                  onClick={() => setIsSignUpMode((prev) => !prev)}
-                >
-                  {isSignUpMode ? t('profile.signIn') : t('profile.signUp')}
-                </button>
-              </div>
-              {authError && <p className="form-error">{authError}</p>}
-              {authMsg && <p className="profile-saved-msg">{authMsg}</p>}
-            </form>
-          )}
+          <button
+            type="button"
+            className="button button-outline-clean full-width-btn"
+            onClick={handleSignOut}
+          >
+            {t('profile.signOut')}
+          </button>
+          <button
+            type="button"
+            className="inline-link-btn privacy-footer-link"
+            onClick={() => setShowPrivacyModal(true)}
+          >
+            Política de Privacidad
+          </button>
         </div>
       </div>
+
+      {showPrivacyModal && <PrivacyModal onClose={() => setShowPrivacyModal(false)} />}
     </div>
   );
 }

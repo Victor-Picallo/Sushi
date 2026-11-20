@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { FUNNY_CELEBRATION_ITEMS } from './constants/celebrations';
+import { checkOAuthSession, getStoredAuthToken } from './services/auth';
 import { socket } from './services/socket';
 import type {
   AppTab,
@@ -16,6 +17,7 @@ import {
   loadRoomHistory,
   saveRoomHistory,
 } from './utils/session';
+import { AuthView } from './components/AuthView';
 import { BottomNav } from './components/BottomNav';
 import { CelebrationOverlay } from './components/CelebrationOverlay';
 import { HistoryView } from './components/HistoryView';
@@ -27,7 +29,18 @@ import { RoomCreatedModal } from './components/RoomCreatedModal';
 import { RoomView } from './components/RoomView';
 
 function App() {
+  const [authToken, setAuthToken] = useState(() => getStoredAuthToken());
   const [activeTab, setActiveTab] = useState<AppTab>('room');
+
+  useEffect(() => {
+    if (authToken) return;
+    checkOAuthSession().then((session) => {
+      if (session) {
+        setAuthToken(session.token);
+        setUserName(session.displayName);
+      }
+    });
+  }, [authToken]);
   const [inRoom, setInRoom] = useState(false);
   const [roomId, setRoomId] = useState('');
   const [userName, setUserName] = useState(() => localStorage.getItem('userName') || '');
@@ -502,7 +515,17 @@ function App() {
     }
 
     if (activeTab === 'profile') {
-      return <ProfileView userName={userName} onUserNameChange={setUserName} />;
+      return (
+        <ProfileView
+          userName={userName}
+          onUserNameChange={setUserName}
+          onSignedOut={() => {
+            setAuthToken('');
+            setInRoom(false);
+            setActiveTab('room');
+          }}
+        />
+      );
     }
 
     if (!inRoom) {
@@ -513,7 +536,6 @@ function App() {
           message={message}
           roomHistory={roomHistory}
           roomsSummaryMap={roomsSummaryMap}
-          onUserNameChange={setUserName}
           onRoomIdChange={setRoomId}
           onCreateRoom={createRoom}
           onJoinRoom={joinRoom}
@@ -538,6 +560,19 @@ function App() {
       />
     );
   };
+
+  if (!authToken) {
+    return (
+      <div className="mobile-app-frame">
+        <AuthView
+          onAuthenticated={(session) => {
+            setAuthToken(session.token);
+            setUserName(session.displayName);
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="mobile-app-frame">
