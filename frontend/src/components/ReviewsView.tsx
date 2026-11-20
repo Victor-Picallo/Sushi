@@ -1,8 +1,6 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  createRestaurant,
-  createRestaurantMenu,
   createReview,
   fetchRestaurantFilters,
   fetchRestaurants,
@@ -13,13 +11,13 @@ import {
 } from '../services/api';
 import { compressImageToWebp } from '../utils/image';
 import { ensurePlayerToken } from '../utils/session';
+import { CustomSelect } from './CustomSelect';
 
 type ReviewsViewProps = {
   userName: string;
-  isSuperuser: boolean;
 };
 
-export function ReviewsView({ userName, isSuperuser }: ReviewsViewProps) {
+export function ReviewsView({ userName }: ReviewsViewProps) {
   const { t } = useTranslation();
 
   const [reviews, setReviews] = useState<ApiReview[]>([]);
@@ -44,16 +42,6 @@ export function ReviewsView({ userName, isSuperuser }: ReviewsViewProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // Superuser forms
-  const [showNewRestForm, setShowNewRestForm] = useState(false);
-  const [newRestName, setNewRestName] = useState('');
-  const [newRestCountry, setNewRestCountry] = useState('España');
-  const [newRestProvince, setNewRestProvince] = useState('');
-  const [newRestCity, setNewRestCity] = useState('');
-  const [newMenuName, setNewMenuName] = useState('');
-  const [newMenuPrice, setNewMenuPrice] = useState('');
-  const [adminMsg, setAdminMsg] = useState('');
-
   const loadRestaurantsData = async (geo?: {
     country?: string;
     province?: string;
@@ -65,8 +53,10 @@ export function ReviewsView({ userName, isSuperuser }: ReviewsViewProps) {
     ]);
     setRestaurants(restList);
     setFilters(filterOpts);
-    if (!selectedRestaurantId && restList[0]) {
+    if (restList[0] && !restList.some((r) => String(r.id) === selectedRestaurantId)) {
       setSelectedRestaurantId(String(restList[0].id));
+    } else if (restList.length === 0) {
+      setSelectedRestaurantId('');
     }
   };
 
@@ -98,55 +88,10 @@ export function ReviewsView({ userName, isSuperuser }: ReviewsViewProps) {
     }
   };
 
-  const handleCreateRestaurant = async (e: FormEvent) => {
-    e.preventDefault();
-    setAdminMsg('');
-    try {
-      const created = await createRestaurant({
-        name: newRestName,
-        country: newRestCountry,
-        province: newRestProvince,
-        city: newRestCity,
-      });
-      setRestaurants((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
-      setSelectedRestaurantId(String(created.id));
-      setNewRestName('');
-      setNewRestProvince('');
-      setNewRestCity('');
-      setShowNewRestForm(false);
-      setAdminMsg('Restaurante creado.');
-      loadRestaurantsData().catch(() => {});
-    } catch (err) {
-      setAdminMsg(err instanceof Error ? err.message : 'Error creando restaurante.');
-    }
-  };
-
-  const handleAddMenu = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!activeRestaurant) return;
-    setAdminMsg('');
-    try {
-      const menu = await createRestaurantMenu(activeRestaurant.id, {
-        name: newMenuName,
-        priceEuros: Number(newMenuPrice),
-      });
-      setRestaurants((prev) =>
-        prev.map((r) =>
-          r.id === activeRestaurant.id ? { ...r, menus: [...r.menus, menu] } : r,
-        ),
-      );
-      setNewMenuName('');
-      setNewMenuPrice('');
-      setAdminMsg('Menú añadido.');
-    } catch (err) {
-      setAdminMsg(err instanceof Error ? err.message : 'Error añadiendo menú.');
-    }
-  };
-
   const handleSubmitReview = async (e: FormEvent) => {
     e.preventDefault();
     if (!activeRestaurant) {
-      setError('Selecciona un restaurante primero.');
+      setError('Selecciona un restaurante primero (un superuser debe crearlo en Config).');
       return;
     }
     if (!pieceName.trim()) {
@@ -186,67 +131,57 @@ export function ReviewsView({ userName, isSuperuser }: ReviewsViewProps) {
 
   return (
     <div className="app-shell tab-shell">
-      <div className="app-card tab-card">
+      <div className="app-card tab-card profile-card-airy">
         <div className="tab-header">
           <h2>{t('reviews.title')}</h2>
           <p>{t('reviews.subtitle')}</p>
         </div>
 
-        {(restaurants.length > 0 || filters.countries.length > 0) && (
-          <div className="geo-filter-row">
-            <select
-              className="input"
-              value={filterCountry}
-              onChange={(e) => setFilterCountry(e.target.value)}
-            >
-              <option value="">{t('reviews.allCountries')}</option>
-              {filters.countries.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-            <select
-              className="input"
-              value={filterProvince}
-              onChange={(e) => setFilterProvince(e.target.value)}
-            >
-              <option value="">{t('reviews.allProvinces')}</option>
-              {filters.provinces.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-            <select
-              className="input"
-              value={filterCity}
-              onChange={(e) => setFilterCity(e.target.value)}
-            >
-              <option value="">{t('reviews.allCities')}</option>
-              {filters.cities.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+        <div className="geo-filter-row">
+          <CustomSelect
+            value={filterCountry}
+            placeholder={t('reviews.allCountries')}
+            options={[
+              { value: '', label: t('reviews.allCountries') },
+              ...filters.countries.map((c) => ({ value: c, label: c })),
+            ]}
+            onChange={setFilterCountry}
+          />
+          <CustomSelect
+            value={filterProvince}
+            placeholder={t('reviews.allProvinces')}
+            options={[
+              { value: '', label: t('reviews.allProvinces') },
+              ...filters.provinces.map((p) => ({ value: p, label: p })),
+            ]}
+            onChange={setFilterProvince}
+          />
+          <CustomSelect
+            value={filterCity}
+            placeholder={t('reviews.allCities')}
+            options={[
+              { value: '', label: t('reviews.allCities') },
+              ...filters.cities.map((c) => ({ value: c, label: c })),
+            ]}
+            onChange={setFilterCity}
+          />
+        </div>
 
         <label className="field">
           <span>Restaurante</span>
-          <select
-            className="input"
+          <CustomSelect
             value={selectedRestaurantId}
-            onChange={(e) => setSelectedRestaurantId(e.target.value)}
-          >
-            {restaurants.length === 0 && <option value="">Sin restaurantes aún</option>}
-            {restaurants.map((r) => (
-              <option key={r.id} value={String(r.id)}>
-                {r.name} {r.city ? `(${r.city})` : ''}
-              </option>
-            ))}
-          </select>
+            placeholder="Sin restaurantes aún"
+            options={
+              restaurants.length > 0
+                ? restaurants.map((r) => ({
+                    value: String(r.id),
+                    label: r.city ? `${r.name} (${r.city})` : r.name,
+                  }))
+                : [{ value: '', label: 'Sin restaurantes aún' }]
+            }
+            onChange={setSelectedRestaurantId}
+          />
         </label>
 
         {activeRestaurant && (
@@ -270,78 +205,6 @@ export function ReviewsView({ userName, isSuperuser }: ReviewsViewProps) {
                 ))}
               </div>
             )}
-
-            {isSuperuser && (
-              <form className="inline-menu-form" onSubmit={handleAddMenu}>
-                <input
-                  className="input"
-                  value={newMenuName}
-                  onChange={(e) => setNewMenuName(e.target.value)}
-                  placeholder={t('reviews.menuName')}
-                  required
-                />
-                <input
-                  className="input price-input"
-                  type="number"
-                  step="0.01"
-                  min="1"
-                  value={newMenuPrice}
-                  onChange={(e) => setNewMenuPrice(e.target.value)}
-                  placeholder="€"
-                  required
-                />
-                <button type="submit" className="button button-secondary">
-                  {t('reviews.addMenu')}
-                </button>
-              </form>
-            )}
-          </div>
-        )}
-
-        {isSuperuser && (
-          <div className="superuser-panel">
-            <button
-              type="button"
-              className="button button-secondary"
-              onClick={() => setShowNewRestForm((prev) => !prev)}
-            >
-              {t('reviews.addRestaurant')}
-            </button>
-            {showNewRestForm && (
-              <form className="review-form" onSubmit={handleCreateRestaurant}>
-                <input
-                  className="input"
-                  value={newRestName}
-                  onChange={(e) => setNewRestName(e.target.value)}
-                  placeholder={t('reviews.restaurantName')}
-                  required
-                />
-                <div className="geo-filter-row">
-                  <input
-                    className="input"
-                    value={newRestCountry}
-                    onChange={(e) => setNewRestCountry(e.target.value)}
-                    placeholder={t('reviews.country')}
-                  />
-                  <input
-                    className="input"
-                    value={newRestProvince}
-                    onChange={(e) => setNewRestProvince(e.target.value)}
-                    placeholder={t('reviews.province')}
-                  />
-                  <input
-                    className="input"
-                    value={newRestCity}
-                    onChange={(e) => setNewRestCity(e.target.value)}
-                    placeholder={t('reviews.city')}
-                  />
-                </div>
-                <button type="submit" className="button button-primary">
-                  Crear restaurante
-                </button>
-              </form>
-            )}
-            {adminMsg && <p className="profile-saved-msg">{adminMsg}</p>}
           </div>
         )}
 
@@ -395,14 +258,31 @@ export function ReviewsView({ userName, isSuperuser }: ReviewsViewProps) {
             </label>
           </div>
 
-          <label className="field">
+          <div className="field">
             <span>{t('reviews.photo')}</span>
-            <input type="file" accept="image/*" className="file-input" onChange={handlePhotoChange} />
-            {photoInfo && <small className="photo-hint">{photoInfo}</small>}
+            <label className="photo-upload-box">
+              <input type="file" accept="image/*" hidden onChange={handlePhotoChange} />
+              <span className="photo-upload-icon">📷</span>
+              <span className="photo-upload-text">
+                {photoInfo ? `Foto lista: ${photoInfo}` : 'Toca para añadir una foto'}
+              </span>
+            </label>
             {photoPreviewUrl && (
-              <img src={photoPreviewUrl} alt="Vista previa" className="review-photo-preview" />
+              <div className="photo-preview-wrap">
+                <img src={photoPreviewUrl} alt="Vista previa" className="review-photo-preview" />
+                <button
+                  type="button"
+                  className="button button-outline-clean small-remove-photo"
+                  onClick={() => {
+                    setPhotoPreviewUrl(undefined);
+                    setPhotoInfo('');
+                  }}
+                >
+                  Quitar foto
+                </button>
+              </div>
             )}
-          </label>
+          </div>
 
           <label className="field">
             <span>{t('reviews.notes')}</span>
@@ -417,7 +297,7 @@ export function ReviewsView({ userName, isSuperuser }: ReviewsViewProps) {
 
           {error && <p className="form-error">{error}</p>}
 
-          <button type="submit" className="button button-primary" disabled={isSubmitting}>
+          <button type="submit" className="button button-primary full-width-btn" disabled={isSubmitting}>
             {isSubmitting ? t('reviews.saving') : t('reviews.saveReview')}
           </button>
         </form>

@@ -1,4 +1,4 @@
-export type AppTab = 'room' | 'history' | 'reviews' | 'profile';
+export type AppTab = 'room' | 'history' | 'reviews' | 'admin' | 'profile';
 
 export type Player = {
   id: string;

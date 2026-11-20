@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import type { NextFunction, Request, Response } from 'express';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import '../config/env.js';
-import { db } from '../db/index.js';
+import { db, pool } from '../db/index.js';
 import { userProfilesTable } from '../db/schema.js';
 
 const jwksUrl = process.env.NEON_AUTH_JWKS_URL;
@@ -38,10 +38,36 @@ async function verifyNeonToken(
     }
   }
 
+  if (pool) {
+    try {
+      const result = await pool.query<{ id: string; email: string | null; name: string | null }>(
+        `SELECT u.id, u.email, u.name
+         FROM neon_auth.session s
+         JOIN neon_auth."user" u ON s."userId" = u.id
+         WHERE s.token = $1 AND s."expiresAt" > now()
+         LIMIT 1`,
+        [token],
+      );
+      const row = result.rows[0];
+      if (row?.id) {
+        return {
+          sub: row.id,
+          email: row.email ?? undefined,
+          name: row.name ?? undefined,
+        };
+      }
+    } catch {
+      // Fallback to HTTP get-session
+    }
+  }
+
   if (authBaseUrl) {
     try {
       const res = await fetch(`${authBaseUrl.replace(/\/+$/, '')}/get-session`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Cookie: `__Secure-better-auth.session_token=${token}; better-auth.session_token=${token}`,
+        },
       });
       if (res.ok) {
         const data = (await res.json()) as { user?: { id?: string; email?: string; name?: string } };

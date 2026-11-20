@@ -23,6 +23,7 @@ import {
   ensurePlayerToken,
   generateCreatorToken,
 } from './utils/session';
+import { AdminView } from './components/AdminView';
 import { AuthView } from './components/AuthView';
 import { BottomNav } from './components/BottomNav';
 import { CelebrationOverlay } from './components/CelebrationOverlay';
@@ -572,7 +573,11 @@ function App() {
     }
 
     if (activeTab === 'reviews') {
-      return <ReviewsView userName={userName} isSuperuser={userRole === 'superuser'} />;
+      return <ReviewsView userName={userName} />;
+    }
+
+    if (activeTab === 'admin' && userRole === 'superuser') {
+      return <AdminView />;
     }
 
     if (activeTab === 'profile') {
@@ -643,7 +648,12 @@ function App() {
     <div className="mobile-app-frame">
       <div className="mobile-app-content">{renderMainContent()}</div>
 
-      <BottomNav activeTab={activeTab} inRoom={inRoom} onSelectTab={setActiveTab} />
+      <BottomNav
+        activeTab={activeTab}
+        inRoom={inRoom}
+        isSuperuser={userRole === 'superuser'}
+        onSelectTab={setActiveTab}
+      />
 
       {showRoomCreatedModal && (
         <RoomCreatedModal roomId={roomId} onClose={() => setShowRoomCreatedModal(false)} />

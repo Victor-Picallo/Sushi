@@ -41,6 +41,28 @@ export function clearAuthSession(): void {
   localStorage.removeItem(EMAIL_STORAGE_KEY);
 }
 
+export async function signOutFromNeon(): Promise<void> {
+  const token = getStoredAuthToken();
+  clearAuthSession();
+  localStorage.removeItem('roomId');
+  localStorage.removeItem('creatorToken');
+  localStorage.removeItem('userName');
+  localStorage.removeItem('sushi_avatar_preview');
+  try {
+    await fetch(`${AUTH_BASE_URL.replace(/\/+$/, '')}/sign-out`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({}),
+    });
+  } catch {
+    // Ignore network errors on sign-out
+  }
+}
+
 async function syncWithBackend(
   token: string,
   email: string,
@@ -61,10 +83,14 @@ async function syncWithBackend(
 
   if (res.ok) {
     const profile = (await res.json()) as {
+      playerToken?: string;
       role?: string;
       displayName?: string;
       avatarUrl?: string | null;
     };
+    if (profile?.playerToken) {
+      localStorage.setItem('playerToken', profile.playerToken);
+    }
     if (profile?.role === 'superuser') role = 'superuser';
     if (profile?.displayName) displayName = profile.displayName;
     if (profile?.avatarUrl) avatarUrl = profile.avatarUrl;
@@ -74,9 +100,6 @@ async function syncWithBackend(
   localStorage.setItem(ROLE_STORAGE_KEY, role);
   localStorage.setItem(EMAIL_STORAGE_KEY, email);
   localStorage.setItem('userName', displayName);
-  if (avatarUrl) {
-    localStorage.setItem('sushi_avatar_preview', avatarUrl);
-  }
   return { token, email, role, displayName, avatarUrl };
 }
 
@@ -198,9 +221,22 @@ export async function checkOAuthSession(): Promise<AuthSession | null> {
       session?: { token?: string };
       user?: { email?: string; name?: string };
     };
-    const token = data?.session?.token;
+    let token = data?.session?.token;
     const email = data?.user?.email;
     if (!token || !email) return null;
+
+    try {
+      const jwtRes = await fetch(`${AUTH_BASE_URL.replace(/\/+$/, '')}/token`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      if (jwtRes.ok) {
+        const jwtData = (await jwtRes.json()) as { token?: string };
+        if (jwtData?.token) token = jwtData.token;
+      }
+    } catch {
+      // Keep session token if /token is unavailable
+    }
 
     if (verifier) {
       url.searchParams.delete('neon_auth_session_verifier');

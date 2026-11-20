@@ -24,6 +24,7 @@ export function generateCreatorToken(): string {
 export function clearLegacyLocalHistory(): void {
   localStorage.removeItem('sushi_room_history');
   localStorage.removeItem('sushi_local_reviews');
+  localStorage.removeItem('sushi_avatar_preview');
 }
 
 export function getRankLabel(index: number): string {

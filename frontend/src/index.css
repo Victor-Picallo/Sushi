@@ -2649,3 +2649,166 @@ select.input:focus {
 .remove-history-btn:active {
   transform: scale(0.94);
 }
+
+/* === Custom Select Dropdown (replaces ugly native select) === */
+.custom-select-wrap {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.custom-select-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-radius: 14px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  padding: 0.68rem 0.85rem;
+  font-family: var(--sans);
+  font-size: 0.88rem;
+  color: #0f172a;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.custom-select-trigger.open,
+.custom-select-trigger:focus {
+  outline: none;
+  border-color: #eb423f;
+  box-shadow: 0 0 0 3px rgba(235, 66, 63, 0.12);
+}
+
+.custom-select-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.custom-select-arrow {
+  flex-shrink: 0;
+  color: #64748b;
+  transition: transform 0.15s ease;
+}
+
+.custom-select-arrow.rotated {
+  transform: rotate(180deg);
+}
+
+.custom-select-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+  padding: 0.35rem;
+  z-index: 60;
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.custom-select-option {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  font-family: var(--sans);
+  font-size: 0.86rem;
+  color: #1e293b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  transition: background-color 0.12s ease;
+}
+
+.custom-select-option:hover {
+  background: #f8fafc;
+}
+
+.custom-select-option.selected {
+  background: #fff1f2;
+  color: #be123c;
+  font-weight: 700;
+}
+
+.custom-select-check {
+  color: #eb423f;
+  font-weight: 800;
+}
+
+/* === Modern Photo Upload Box & Admin Section === */
+.photo-upload-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 14px;
+  background: #f8fafc;
+  padding: 0.9rem 1rem;
+  cursor: pointer;
+  color: #475569;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.photo-upload-box:hover {
+  border-color: #eb423f;
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.photo-upload-icon {
+  font-size: 1.2rem;
+}
+
+.photo-preview-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.small-remove-photo {
+  align-self: flex-start;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8rem;
+}
+
+.admin-section-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.admin-section-card h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.admin-menu-row {
+  display: grid;
+  grid-template-columns: 1fr 110px;
+  gap: 0.6rem;
+}

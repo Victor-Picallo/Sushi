@@ -2,12 +2,13 @@ import { useEffect, useState, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fetchProfile, saveProfile } from '../services/api';
 import {
-  clearAuthSession,
   getStoredEmail,
+  signOutFromNeon,
   type UserRole,
 } from '../services/auth';
 import { compressImageToWebp } from '../utils/image';
 import { ensurePlayerToken } from '../utils/session';
+import { CustomSelect } from './CustomSelect';
 import { PrivacyModal } from './PrivacyModal';
 
 type ProfileViewProps = {
@@ -18,8 +19,6 @@ type ProfileViewProps = {
   onSignedOut: () => void;
 };
 
-const AVATAR_KEY = 'sushi_avatar_preview';
-
 export function ProfileView({
   userName,
   role,
@@ -28,7 +27,7 @@ export function ProfileView({
   onSignedOut,
 }: ProfileViewProps) {
   const { t, i18n } = useTranslation();
-  const [avatarUrl, setAvatarUrl] = useState<string>(() => localStorage.getItem(AVATAR_KEY) || '');
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
   const [pendingAvatarDataUrl, setPendingAvatarDataUrl] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
@@ -45,11 +44,9 @@ export function ProfileView({
           }
           if (profile.avatarUrl) {
             setAvatarUrl(profile.avatarUrl);
-            localStorage.setItem(AVATAR_KEY, profile.avatarUrl);
           }
           if (profile.role === 'superuser' || profile.role === 'user') {
             onRoleChange(profile.role);
-            localStorage.setItem('sushi_user_role', profile.role);
           }
         }
       })
@@ -63,7 +60,6 @@ export function ProfileView({
       const { dataUrl } = await compressImageToWebp(file, 512, 0.85);
       setAvatarUrl(dataUrl);
       setPendingAvatarDataUrl(dataUrl);
-      localStorage.setItem(AVATAR_KEY, dataUrl);
       setSavedMsg('Foto comprimida a WebP. Pulsa "Guardar perfil" para subirla.');
     } catch {
       setSavedMsg('No se pudo procesar el avatar.');
@@ -83,19 +79,18 @@ export function ProfileView({
       });
       if (saved.avatarUrl) {
         setAvatarUrl(saved.avatarUrl);
-        localStorage.setItem(AVATAR_KEY, saved.avatarUrl);
       }
       setPendingAvatarDataUrl(undefined);
       setSavedMsg('Perfil actualizado en PostgreSQL.');
     } catch {
-      setSavedMsg('Guardado en local (error conectando con el servidor).');
+      setSavedMsg('Error conectando con el servidor.');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleSignOut = () => {
-    clearAuthSession();
+  const handleSignOut = async () => {
+    await signOutFromNeon();
     onSignedOut();
   };
 
@@ -141,14 +136,14 @@ export function ProfileView({
 
           <label className="field">
             <span>{t('profile.language')}</span>
-            <select
-              className="input"
+            <CustomSelect
               value={i18n.resolvedLanguage || 'es'}
-              onChange={(e) => i18n.changeLanguage(e.target.value)}
-            >
-              <option value="es">🇪🇸 Español</option>
-              <option value="en">🇬🇧 English</option>
-            </select>
+              options={[
+                { value: 'es', label: '🇪🇸 Español' },
+                { value: 'en', label: '🇬🇧 English' },
+              ]}
+              onChange={(lang) => i18n.changeLanguage(lang)}
+            />
           </label>
 
           <button
