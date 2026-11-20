@@ -1,0 +1,61 @@
+{
+  "nav": {
+    "room": "Room",
+    "inRoom": "In room",
+    "history": "History",
+    "reviews": "Reviews",
+    "profile": "Profile"
+  },
+  "landing": {
+    "subtitle": "Create a new room or join an existing one to compete for the best score.",
+    "yourName": "Your name",
+    "roomId": "Room ID",
+    "roomIdPlaceholder": "4-digit ID",
+    "createRoom": "Create room",
+    "joinRoom": "Join room",
+    "recentRooms": "Recent rooms 📜",
+    "closed": "🔒 Closed",
+    "active": "🟢 Active",
+    "enter": "Join"
+  },
+  "reviews": {
+    "title": "Restaurants & Reviews ⭐",
+    "subtitle": "Filter spots by location, check menu prices and rate every sushi piece.",
+    "allCountries": "All countries",
+    "allProvinces": "All provinces",
+    "allCities": "All cities",
+    "menusTitle": "Menus & prices",
+    "noMenus": "No menu prices yet.",
+    "addRestaurant": "+ New restaurant (Superuser)",
+    "addMenu": "+ Add menu",
+    "restaurantName": "Restaurant name",
+    "country": "Country",
+    "province": "Province",
+    "city": "City",
+    "menuName": "Menu name (e.g. Lunch)",
+    "menuPrice": "Price (€)",
+    "pieceName": "Sushi piece",
+    "taste": "Taste",
+    "size": "Size",
+    "presentation": "Look",
+    "photo": "Photo (optional)",
+    "notes": "Notes",
+    "saveReview": "Save review",
+    "saving": "Saving..."
+  },
+  "profile": {
+    "title": "Your Profile 👤",
+    "subtitle": "Manage your account, language and avatar.",
+    "language": "Language",
+    "role": "Role",
+    "authTitle": "Account (Neon Auth)",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "signOut": "Sign out",
+    "displayName": "Display name",
+    "saveProfile": "Save profile",
+    "changePhoto": "Change photo"
+  }
+}

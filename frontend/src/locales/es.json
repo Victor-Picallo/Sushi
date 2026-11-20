@@ -1,0 +1,61 @@
+{
+  "nav": {
+    "room": "Sala",
+    "inRoom": "En sala",
+    "history": "Historial",
+    "reviews": "Valorar",
+    "profile": "Perfil"
+  },
+  "landing": {
+    "subtitle": "Crea una sala nueva o únete a una existente para competir por el mejor score.",
+    "yourName": "Tu nombre",
+    "roomId": "ID de la sala",
+    "roomIdPlaceholder": "ID de la sesión",
+    "createRoom": "Crear sala",
+    "joinRoom": "Entrar a la sala",
+    "recentRooms": "Salas recientes 📜",
+    "closed": "🔒 Cerrada",
+    "active": "🟢 Activa",
+    "enter": "Entrar"
+  },
+  "reviews": {
+    "title": "Restaurantes y Valoraciones ⭐",
+    "subtitle": "Filtra locales por zona, consulta sus menús y puntúa cada pieza.",
+    "allCountries": "Todos los países",
+    "allProvinces": "Todas las provincias",
+    "allCities": "Todas las ciudades",
+    "menusTitle": "Menús y precios",
+    "noMenus": "Sin precios de menú todavía.",
+    "addRestaurant": "+ Nuevo restaurante (Superuser)",
+    "addMenu": "+ Añadir menú",
+    "restaurantName": "Nombre del restaurante",
+    "country": "País",
+    "province": "Provincia",
+    "city": "Ciudad",
+    "menuName": "Nombre del menú (ej. Mediodía)",
+    "menuPrice": "Precio (€)",
+    "pieceName": "Pieza de sushi",
+    "taste": "Sabor",
+    "size": "Tamaño",
+    "presentation": "Aspecto",
+    "photo": "Foto (opcional)",
+    "notes": "Notas",
+    "saveReview": "Guardar valoración",
+    "saving": "Guardando..."
+  },
+  "profile": {
+    "title": "Tu Perfil 👤",
+    "subtitle": "Gestiona tu cuenta, idioma y avatar.",
+    "language": "Idioma",
+    "role": "Rol",
+    "authTitle": "Cuenta (Neon Auth)",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "signIn": "Iniciar sesión",
+    "signUp": "Crear cuenta",
+    "signOut": "Cerrar sesión",
+    "displayName": "Nombre visible",
+    "saveProfile": "Guardar perfil",
+    "changePhoto": "Cambiar foto"
+  }
+}

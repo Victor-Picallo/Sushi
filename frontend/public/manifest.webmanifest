@@ -1,0 +1,16 @@
+{
+  "name": "FatSushi",
+  "short_name": "FatSushi",
+  "description": "Contador de sushis en tiempo real, historial de cenas y valoraciones.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#eb423f",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
