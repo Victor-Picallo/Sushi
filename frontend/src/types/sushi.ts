@@ -14,6 +14,11 @@ export type Room = {
   creatorName: string;
   creatorToken: string;
   isClosed: boolean;
+  restaurantId?: number | null;
+  restaurantName?: string | null;
+  menuId?: number | null;
+  menuName?: string | null;
+  menuPriceCents?: number | null;
 };
 
 export type RoomHistoryItem = {
@@ -22,12 +27,14 @@ export type RoomHistoryItem = {
   creatorToken?: string;
   lastJoinedAt: number;
   isClosed?: boolean;
+  restaurantName?: string | null;
   finalPlayers?: { name: string; score: number }[];
 };
 
 export type RoomSummary = {
   id: string;
   isClosed: boolean;
+  restaurantName?: string | null;
   players: { name: string; score: number }[];
 };
 

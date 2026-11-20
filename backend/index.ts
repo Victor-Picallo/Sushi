@@ -21,6 +21,7 @@ import {
   deletePlayerFromDb,
   deleteRoomFromDb,
   loadPlayerHistoryFromDb,
+  loadPlayerStatsFromDb,
   loadRoomFromDb,
   loadRoomsSummaryFromDb,
   markRoomClosedInDb,
@@ -134,6 +135,17 @@ app.delete('/api/history/:roomId', async (req, res) => {
   } catch (error) {
     console.error('DELETE /api/history/:roomId error:', error);
     res.status(500).json({ error: 'No se pudo eliminar la sala del historial.' });
+  }
+});
+
+app.get('/api/stats/:playerToken', async (req, res) => {
+  try {
+    const playerToken = String(req.params.playerToken || '').trim();
+    const stats = await loadPlayerStatsFromDb(playerToken);
+    res.json(stats);
+  } catch (error) {
+    console.error('GET /api/stats error:', error);
+    res.status(500).json({ error: 'No se pudieron cargar las estadísticas.' });
   }
 });
 
@@ -265,7 +277,13 @@ app.post('/api/restaurants/:id/menus', requireAuth, requireSuperuser, async (req
       return;
     }
 
-    const { name, priceEuros, currency = 'EUR', notes = '' } = req.body as Record<string, unknown>;
+    const {
+      name,
+      schedule = '',
+      priceEuros,
+      currency = 'EUR',
+      notes = '',
+    } = req.body as Record<string, unknown>;
     const cleanName = String(name || '').trim();
     const numericPrice = Number(priceEuros);
     if (!cleanName || Number.isNaN(numericPrice) || numericPrice <= 0) {
@@ -278,6 +296,7 @@ app.post('/api/restaurants/:id/menus', requireAuth, requireSuperuser, async (req
       .values({
         restaurantId,
         name: cleanName,
+        schedule: String(schedule || '').trim(),
         priceCents: Math.round(numericPrice * 100),
         currency: String(currency || 'EUR').trim().toUpperCase(),
         notes: String(notes || '').trim(),
@@ -288,6 +307,89 @@ app.post('/api/restaurants/:id/menus', requireAuth, requireSuperuser, async (req
   } catch (error) {
     console.error('POST /api/restaurants/:id/menus error:', error);
     res.status(500).json({ error: 'No se pudo añadir el menú.' });
+  }
+});
+
+app.put('/api/restaurants/:id/menus/:menuId', requireAuth, requireSuperuser, async (req, res) => {
+  try {
+    if (!db) {
+      res.status(503).json({ error: 'Base de datos no configurada.' });
+      return;
+    }
+    const restaurantId = Number(req.params.id);
+    const menuId = Number(req.params.menuId);
+    const { name, schedule = '', priceEuros, notes = '' } = req.body as Record<string, unknown>;
+    const cleanName = String(name || '').trim();
+    const numericPrice = Number(priceEuros);
+    if (!restaurantId || !menuId || !cleanName || Number.isNaN(numericPrice) || numericPrice <= 0) {
+      res.status(400).json({ error: 'Datos inválidos para actualizar el menú.' });
+      return;
+    }
+
+    const [updated] = await db
+      .update(restaurantMenusTable)
+      .set({
+        name: cleanName,
+        schedule: String(schedule || '').trim(),
+        priceCents: Math.round(numericPrice * 100),
+        notes: String(notes || '').trim(),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(restaurantMenusTable.id, menuId),
+          eq(restaurantMenusTable.restaurantId, restaurantId),
+        ),
+      )
+      .returning();
+
+    res.json(updated ?? null);
+  } catch (error) {
+    console.error('PUT /api/restaurants/:id/menus/:menuId error:', error);
+    res.status(500).json({ error: 'No se pudo actualizar el menú.' });
+  }
+});
+
+app.delete(
+  '/api/restaurants/:id/menus/:menuId',
+  requireAuth,
+  requireSuperuser,
+  async (req, res) => {
+    try {
+      if (!db) {
+        res.status(503).json({ error: 'Base de datos no configurada.' });
+        return;
+      }
+      const restaurantId = Number(req.params.id);
+      const menuId = Number(req.params.menuId);
+      await db
+        .delete(restaurantMenusTable)
+        .where(
+          and(
+            eq(restaurantMenusTable.id, menuId),
+            eq(restaurantMenusTable.restaurantId, restaurantId),
+          ),
+        );
+      res.json({ ok: true });
+    } catch (error) {
+      console.error('DELETE /api/restaurants/:id/menus/:menuId error:', error);
+      res.status(500).json({ error: 'No se pudo eliminar el menú.' });
+    }
+  },
+);
+
+app.delete('/api/restaurants/:id', requireAuth, requireSuperuser, async (req, res) => {
+  try {
+    if (!db) {
+      res.status(503).json({ error: 'Base de datos no configurada.' });
+      return;
+    }
+    const restaurantId = Number(req.params.id);
+    await db.delete(restaurantsTable).where(eq(restaurantsTable.id, restaurantId));
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('DELETE /api/restaurants/:id error:', error);
+    res.status(500).json({ error: 'No se pudo eliminar el restaurante.' });
   }
 });
 
@@ -534,7 +636,16 @@ io.on('connection', (socket: Socket) => {
         userName,
         creatorToken,
         playerToken,
-      }: { roomId: string; userName: string; creatorToken?: string; playerToken?: string },
+        restaurantId,
+        menuId,
+      }: {
+        roomId: string;
+        userName: string;
+        creatorToken?: string;
+        playerToken?: string;
+        restaurantId?: number;
+        menuId?: number;
+      },
       callback?: (room: Room) => void,
     ) => {
       try {
@@ -549,6 +660,30 @@ io.on('connection', (socket: Socket) => {
 
         let room = await getOrLoadRoom(roomId);
         if (!room) {
+          let restaurantName: string | null = null;
+          let menuName: string | null = null;
+          let menuPriceCents: number | null = null;
+
+          if (db && restaurantId) {
+            const restRows = await db
+              .select({ name: restaurantsTable.name })
+              .from(restaurantsTable)
+              .where(eq(restaurantsTable.id, Number(restaurantId)))
+              .limit(1);
+            restaurantName = restRows[0]?.name ?? null;
+          }
+          if (db && menuId) {
+            const menuRows = await db
+              .select({ name: restaurantMenusTable.name, priceCents: restaurantMenusTable.priceCents })
+              .from(restaurantMenusTable)
+              .where(eq(restaurantMenusTable.id, Number(menuId)))
+              .limit(1);
+            if (menuRows[0]) {
+              menuName = menuRows[0].name;
+              menuPriceCents = menuRows[0].priceCents;
+            }
+          }
+
           room = {
             id: roomId,
             players: [],
@@ -556,6 +691,11 @@ io.on('connection', (socket: Socket) => {
             creatorName: normalizedName,
             creatorToken: normalizedCreatorToken || crypto.randomUUID(),
             isClosed: false,
+            restaurantId: restaurantId ? Number(restaurantId) : null,
+            restaurantName,
+            menuId: menuId ? Number(menuId) : null,
+            menuName,
+            menuPriceCents,
           };
           rooms[roomId] = room;
         } else if (normalizedCreatorToken && room.creatorToken === normalizedCreatorToken) {

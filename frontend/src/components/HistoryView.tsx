@@ -54,6 +54,9 @@ export function HistoryView({
                     <p className="history-meta">
                       {formattedDate} · Como <strong>{item.userName}</strong>
                       {totalPieces > 0 ? ` · Total: ${totalPieces} 🍣` : ''}
+                      {summary?.restaurantName || item.restaurantName
+                        ? ` · 📍 ${summary?.restaurantName || item.restaurantName}`
+                        : ''}
                     </p>
                     {players.length > 0 && (
                       <p className="recent-room-players">

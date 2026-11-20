@@ -75,6 +75,28 @@ export function ReviewsView({ userName }: ReviewsViewProps) {
   }, [filterCountry, filterProvince, filterCity]);
 
   const activeRestaurant = restaurants.find((r) => String(r.id) === selectedRestaurantId);
+  const restaurantReviews = activeRestaurant
+    ? reviews.filter((r) => r.restaurantId === activeRestaurant.id)
+    : [];
+  const restaurantAvg =
+    restaurantReviews.length > 0
+      ? (
+          restaurantReviews.reduce(
+            (sum, r) => sum + (r.tasteScore + r.sizeScore + r.presentationScore) / 3,
+            0,
+          ) / restaurantReviews.length
+        ).toFixed(1)
+      : null;
+  const topPieces = restaurantReviews
+    .slice()
+    .sort(
+      (a, b) =>
+        b.tasteScore +
+        b.sizeScore +
+        b.presentationScore -
+        (a.tasteScore + a.sizeScore + a.presentationScore),
+    )
+    .slice(0, 3);
 
   const handlePhotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -187,7 +209,10 @@ export function ReviewsView({ userName }: ReviewsViewProps) {
         {activeRestaurant && (
           <div className="menus-card">
             <div className="menus-card-header">
-              <strong>{t('reviews.menusTitle')}</strong>
+              <strong>
+                {t('reviews.menusTitle')}
+                {restaurantAvg ? ` · ⭐ ${restaurantAvg} (${restaurantReviews.length})` : ''}
+              </strong>
               <span className="menus-location">
                 {[activeRestaurant.city, activeRestaurant.province, activeRestaurant.country]
                   .filter(Boolean)
@@ -200,9 +225,25 @@ export function ReviewsView({ userName }: ReviewsViewProps) {
               <div className="menus-pills">
                 {activeRestaurant.menus.map((m) => (
                   <span key={m.id} className="menu-pill">
-                    {m.name}: <strong>{(m.priceCents / 100).toFixed(2)} €</strong>
+                    {m.name}
+                    {m.schedule ? ` (${m.schedule})` : ''}:{' '}
+                    <strong>{(m.priceCents / 100).toFixed(2)} €</strong>
+                    {m.notes ? ` · ${m.notes}` : ''}
                   </span>
                 ))}
+              </div>
+            )}
+            {topPieces.length > 0 && (
+              <div className="top-pieces-strip">
+                <span className="small-text muted">🏆 Top piezas: </span>
+                {topPieces.map((tp) => {
+                  const avg = ((tp.tasteScore + tp.sizeScore + tp.presentationScore) / 3).toFixed(1);
+                  return (
+                    <span key={tp.id} className="top-piece-chip">
+                      {tp.pieceName} ({avg})
+                    </span>
+                  );
+                })}
               </div>
             )}
           </div>

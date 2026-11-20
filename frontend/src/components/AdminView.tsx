@@ -2,11 +2,16 @@ import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import {
   createRestaurant,
   createRestaurantMenu,
+  deleteRestaurant,
+  deleteRestaurantMenu,
   fetchRestaurants,
+  updateRestaurantMenu,
   type ApiRestaurant,
+  type ApiRestaurantMenu,
 } from '../services/api';
 import { compressImageToWebp } from '../utils/image';
 import { CustomSelect } from './CustomSelect';
+import { TrashIcon } from './Icons';
 
 export function AdminView() {
   const [restaurants, setRestaurants] = useState<ApiRestaurant[]>([]);
@@ -19,7 +24,9 @@ export function AdminView() {
   const [creatingRest, setCreatingRest] = useState(false);
 
   const [selectedRestId, setSelectedRestId] = useState('');
+  const [editingMenuId, setEditingMenuId] = useState<number | null>(null);
   const [menuName, setMenuName] = useState('');
+  const [menuSchedule, setMenuSchedule] = useState('');
   const [menuPrice, setMenuPrice] = useState('');
   const [menuNotes, setMenuNotes] = useState('');
   const [creatingMenu, setCreatingMenu] = useState(false);
@@ -35,6 +42,8 @@ export function AdminView() {
       })
       .catch(() => {});
   }, []);
+
+  const activeRest = restaurants.find((r) => String(r.id) === selectedRestId);
 
   const handlePhotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -81,7 +90,23 @@ export function AdminView() {
     }
   };
 
-  const handleCreateMenu = async (e: FormEvent) => {
+  const resetMenuForm = () => {
+    setEditingMenuId(null);
+    setMenuName('');
+    setMenuSchedule('');
+    setMenuPrice('');
+    setMenuNotes('');
+  };
+
+  const startEditMenu = (m: ApiRestaurantMenu) => {
+    setEditingMenuId(m.id);
+    setMenuName(m.name);
+    setMenuSchedule(m.schedule || '');
+    setMenuPrice((m.priceCents / 100).toFixed(2));
+    setMenuNotes(m.notes || '');
+  };
+
+  const handleSaveMenu = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
     setMsg('');
@@ -93,22 +118,69 @@ export function AdminView() {
 
     setCreatingMenu(true);
     try {
-      const menu = await createRestaurantMenu(restId, {
-        name: menuName.trim(),
-        priceEuros: Number(menuPrice),
-        notes: menuNotes.trim(),
-      });
-      setRestaurants((prev) =>
-        prev.map((r) => (r.id === restId ? { ...r, menus: [...r.menus, menu] } : r)),
-      );
-      setMenuName('');
-      setMenuPrice('');
-      setMenuNotes('');
-      setMsg(`Menú "${menu.name}" añadido.`);
+      if (editingMenuId) {
+        const updated = await updateRestaurantMenu(restId, editingMenuId, {
+          name: menuName.trim(),
+          schedule: menuSchedule.trim(),
+          priceEuros: Number(menuPrice),
+          notes: menuNotes.trim(),
+        });
+        setRestaurants((prev) =>
+          prev.map((r) =>
+            r.id === restId
+              ? { ...r, menus: r.menus.map((m) => (m.id === editingMenuId ? updated : m)) }
+              : r,
+          ),
+        );
+        setMsg(`Menú "${updated.name}" actualizado.`);
+      } else {
+        const menu = await createRestaurantMenu(restId, {
+          name: menuName.trim(),
+          schedule: menuSchedule.trim(),
+          priceEuros: Number(menuPrice),
+          notes: menuNotes.trim(),
+        });
+        setRestaurants((prev) =>
+          prev.map((r) => (r.id === restId ? { ...r, menus: [...r.menus, menu] } : r)),
+        );
+        setMsg(`Menú "${menu.name}" añadido.`);
+      }
+      resetMenuForm();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error añadiendo menú.');
+      setError(err instanceof Error ? err.message : 'Error guardando menú.');
     } finally {
       setCreatingMenu(false);
+    }
+  };
+
+  const handleDeleteMenu = async (menuId: number) => {
+    const restId = Number(selectedRestId);
+    if (!restId) return;
+    try {
+      await deleteRestaurantMenu(restId, menuId);
+      setRestaurants((prev) =>
+        prev.map((r) =>
+          r.id === restId ? { ...r, menus: r.menus.filter((m) => m.id !== menuId) } : r,
+        ),
+      );
+      if (editingMenuId === menuId) resetMenuForm();
+      setMsg('Menú eliminado.');
+    } catch {
+      setError('No se pudo eliminar el menú.');
+    }
+  };
+
+  const handleDeleteRestaurant = async () => {
+    if (!activeRest) return;
+    try {
+      await deleteRestaurant(activeRest.id);
+      const remaining = restaurants.filter((r) => r.id !== activeRest.id);
+      setRestaurants(remaining);
+      setSelectedRestId(remaining[0] ? String(remaining[0].id) : '');
+      resetMenuForm();
+      setMsg(`Restaurante "${activeRest.name}" eliminado.`);
+    } catch {
+      setError('No se pudo eliminar el restaurante.');
     }
   };
 
@@ -120,7 +192,7 @@ export function AdminView() {
             <h2>Configuración Admin ⚙️</h2>
             <span className="role-badge super">👑 Superuser</span>
           </div>
-          <p>Solo visible para superusers: crea restaurantes, ubicaciones y precios de menús.</p>
+          <p>Solo visible para superusers: gestiona restaurantes, ubicaciones y menús.</p>
         </div>
 
         <form className="admin-section-card" onSubmit={handleCreateRestaurant}>
@@ -183,8 +255,20 @@ export function AdminView() {
           </button>
         </form>
 
-        <form className="admin-section-card" onSubmit={handleCreateMenu}>
-          <h3>Añadir precio de menú</h3>
+        <form className="admin-section-card" onSubmit={handleSaveMenu}>
+          <div className="profile-header-row">
+            <h3>{editingMenuId ? 'Editar menú' : 'Gestionar menús'}</h3>
+            {activeRest && (
+              <button
+                type="button"
+                className="remove-history-btn"
+                title={`Eliminar ${activeRest.name}`}
+                onClick={handleDeleteRestaurant}
+              >
+                <TrashIcon />
+              </button>
+            )}
+          </div>
 
           <label className="field">
             <span>Restaurante</span>
@@ -195,9 +279,45 @@ export function AdminView() {
                 value: String(r.id),
                 label: r.city ? `${r.name} (${r.city})` : r.name,
               }))}
-              onChange={setSelectedRestId}
+              onChange={(val) => {
+                setSelectedRestId(val);
+                resetMenuForm();
+              }}
             />
           </label>
+
+          {activeRest && activeRest.menus.length > 0 && (
+            <div className="admin-menu-list">
+              {activeRest.menus.map((m) => (
+                <div key={m.id} className="admin-menu-item">
+                  <div className="admin-menu-info">
+                    <strong>
+                      {m.name} {m.schedule ? `(${m.schedule})` : ''} · {(m.priceCents / 100).toFixed(2)} €
+                    </strong>
+                    {m.notes && <span className="muted small-text">{m.notes}</span>}
+                  </div>
+                  <div className="recent-room-actions">
+                    <button
+                      type="button"
+                      className="room-mini-btn"
+                      onClick={() => startEditMenu(m)}
+                      title="Editar menú"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      type="button"
+                      className="remove-history-btn"
+                      onClick={() => handleDeleteMenu(m.id)}
+                      title="Eliminar menú"
+                    >
+                      <TrashIcon />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="admin-menu-row">
             <label className="field">
@@ -206,7 +326,7 @@ export function AdminView() {
                 className="input"
                 value={menuName}
                 onChange={(e) => setMenuName(e.target.value)}
-                placeholder="Ej. Buffet Noche"
+                placeholder="Ej. Menú Infinity"
                 required
               />
             </label>
@@ -219,11 +339,21 @@ export function AdminView() {
                 min="1"
                 value={menuPrice}
                 onChange={(e) => setMenuPrice(e.target.value)}
-                placeholder="21.90"
+                placeholder="18.80"
                 required
               />
             </label>
           </div>
+
+          <label className="field">
+            <span>Horario / Turno</span>
+            <input
+              className="input"
+              value={menuSchedule}
+              onChange={(e) => setMenuSchedule(e.target.value)}
+              placeholder="Ej. Mediodía / Cena / Fin de semana"
+            />
+          </label>
 
           <label className="field">
             <span>Notas (opcional)</span>
@@ -231,17 +361,24 @@ export function AdminView() {
               className="input"
               value={menuNotes}
               onChange={(e) => setMenuNotes(e.target.value)}
-              placeholder="Ej. Bebida aparte"
+              placeholder="Ej. Lunes a viernes no festivos"
             />
           </label>
 
-          <button
-            type="submit"
-            className="button button-outline-clean full-width-btn"
-            disabled={creatingMenu || restaurants.length === 0}
-          >
-            {creatingMenu ? 'Guardando...' : 'Guardar menú'}
-          </button>
+          <div className="button-row clean-button-row">
+            <button
+              type="submit"
+              className="button button-primary"
+              disabled={creatingMenu || restaurants.length === 0}
+            >
+              {creatingMenu ? 'Guardando...' : editingMenuId ? 'Actualizar menú' : 'Guardar menú'}
+            </button>
+            {editingMenuId && (
+              <button type="button" className="button button-outline-clean" onClick={resetMenuForm}>
+                Cancelar
+              </button>
+            )}
+          </div>
         </form>
 
         {error && <p className="form-error">{error}</p>}

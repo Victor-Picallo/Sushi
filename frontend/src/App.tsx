@@ -96,11 +96,38 @@ function App() {
             userName: it.userName,
             lastJoinedAt: it.lastJoinedAt,
             isClosed: it.isClosed,
+            restaurantName: it.restaurantName ?? null,
             finalPlayers: it.finalPlayers,
           })),
         );
       })
       .catch(() => {});
+
+    const url = new URL(window.location.href);
+    const inviteRoom = url.searchParams.get('room');
+    if (inviteRoom && /^\d{4}$/.test(inviteRoom)) {
+      url.searchParams.delete('room');
+      window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+      setRoomId(inviteRoom);
+      userWantsLandingRef.current = false;
+      const activeName = localStorage.getItem('userName') || userName || 'Sushi Lover';
+      const activePlayerToken = ensurePlayerToken();
+      persistRoomSession(inviteRoom, activeName, creatorToken);
+      emitJoinWithFeedback(
+        {
+          roomId: inviteRoom,
+          userName: activeName,
+          creatorToken,
+          playerToken: activePlayerToken,
+        },
+        (room) => {
+          const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
+          setRoomData({ ...room, players: sortedPlayers });
+          setInRoom(true);
+          setIsJoining(false);
+        },
+      );
+    }
   }, [authToken]);
 
   const getCurrentPlayer = (players: Player[] = []) => {
@@ -168,6 +195,8 @@ function App() {
       userName: string;
       creatorToken: string;
       playerToken: string;
+      restaurantId?: number;
+      menuId?: number;
     },
     onSuccess: (room: Room) => void,
   ) => {
@@ -399,7 +428,7 @@ function App() {
     return () => window.clearTimeout(timeout);
   }, [movedPlayerIds]);
 
-  const createRoom = () => {
+  const createRoom = (restaurantId?: number, menuId?: number) => {
     const activeName = userName.trim() || 'Sushi Lover';
     userWantsLandingRef.current = false;
     const generatedId = Math.floor(1000 + Math.random() * 9000).toString();
@@ -419,6 +448,8 @@ function App() {
         userName: activeName,
         creatorToken: generatedToken,
         playerToken: activePlayerToken,
+        ...(restaurantId ? { restaurantId } : {}),
+        ...(menuId ? { menuId } : {}),
       },
       (room) => {
         const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);

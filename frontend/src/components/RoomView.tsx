@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import type { Room } from '../types/sushi';
 import { getRankLabel } from '../utils/session';
+import { QuickReviewModal } from './QuickReviewModal';
+import { ShareRoomModal } from './ShareRoomModal';
 
 type RoomViewProps = {
   roomId: string;
@@ -26,9 +29,22 @@ export function RoomView({
   onUpdateScore,
   onFinishCount,
 }: RoomViewProps) {
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showQuickReview, setShowQuickReview] = useState(false);
+
   const isRoomClosed = roomData?.isClosed;
   const totalRoomScore = roomData?.players.reduce((sum, player) => sum + player.score, 0) ?? 0;
   const currentUserNameKey = userName.trim().toLowerCase();
+
+  const me = roomData?.players.find(
+    (player) =>
+      player.id === socketId ||
+      player.id === playerId ||
+      player.name.trim().toLowerCase() === currentUserNameKey,
+  );
+  const myScore = me?.score ?? 0;
+  const menuPriceCents = roomData?.menuPriceCents ?? null;
+  const costPerPiece = menuPriceCents && myScore > 0 ? menuPriceCents / 100 / myScore : null;
 
   return (
     <div className="app-shell">
@@ -39,15 +55,41 @@ export function RoomView({
               ← Atrás
             </button>
           </div>
-          <div className={`status-chip ${isRoomClosed ? 'closed' : 'active'}`}>
-            <span className="status-dot"></span>
-            <span>{isRoomClosed ? '🔒 Recuento cerrado' : 'Partida en curso'}</span>
+          <div className="room-top-actions">
+            <button
+              type="button"
+              className="room-mini-btn"
+              onClick={() => setShowShareModal(true)}
+              title="Invitar / QR"
+            >
+              🔗 QR
+            </button>
+            {roomData?.restaurantId && roomData.restaurantName && (
+              <button
+                type="button"
+                className="room-mini-btn"
+                onClick={() => setShowQuickReview(true)}
+                title="Valorar una pieza en este restaurante"
+              >
+                ⭐ Valorar
+              </button>
+            )}
+            <div className={`status-chip ${isRoomClosed ? 'closed' : 'active'}`}>
+              <span className="status-dot"></span>
+              <span>{isRoomClosed ? '🔒 Cerrada' : 'En curso'}</span>
+            </div>
           </div>
         </div>
 
         <div className="room-header">
           <p className="room-label">Sala</p>
           <h2>{roomId}</h2>
+          {roomData?.restaurantName && (
+            <div className="room-restaurant-pill">
+              📍 {roomData.restaurantName}
+              {roomData.menuName ? ` · ${roomData.menuName}` : ''}
+            </div>
+          )}
         </div>
 
         <div className="room-total-counter-section">
@@ -56,6 +98,12 @@ export function RoomView({
             <strong>{totalRoomScore}</strong>
             <span className="room-total-unit">🍣</span>
           </div>
+          {costPerPiece !== null && (
+            <div className={`buffet-meter ${costPerPiece < 1 ? 'amortized' : ''}`}>
+              Tu coste/pieza: <strong>{costPerPiece.toFixed(2)} €</strong>
+              {costPerPiece < 1 ? ' 🔥 ¡Amortizado!' : ''}
+            </div>
+          )}
         </div>
 
         {!isRoomClosed && (
@@ -147,6 +195,23 @@ export function RoomView({
           </button>
         )}
       </div>
+
+      {showShareModal && (
+        <ShareRoomModal
+          roomId={roomId}
+          restaurantName={roomData?.restaurantName}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
+
+      {showQuickReview && roomData?.restaurantId && roomData.restaurantName && (
+        <QuickReviewModal
+          restaurantId={roomData.restaurantId}
+          restaurantName={roomData.restaurantName}
+          userName={userName}
+          onClose={() => setShowQuickReview(false)}
+        />
+      )}
     </div>
   );
 }

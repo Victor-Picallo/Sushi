@@ -31,6 +31,7 @@ export const restaurantMenusTable = pgTable('restaurant_menus', {
     .notNull()
     .references(() => restaurantsTable.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
+  schedule: text('schedule').notNull().default(''),
   priceCents: integer('price_cents').notNull(),
   currency: text('currency').notNull().default('EUR'),
   notes: text('notes').notNull().default(''),
@@ -43,6 +44,9 @@ export const roomsTable = pgTable('rooms', {
   creatorName: text('creator_name').notNull(),
   creatorToken: text('creator_token').notNull(),
   restaurantId: integer('restaurant_id').references(() => restaurantsTable.id, {
+    onDelete: 'set null',
+  }),
+  menuId: integer('menu_id').references(() => restaurantMenusTable.id, {
     onDelete: 'set null',
   }),
   isClosed: boolean('is_closed').notNull().default(false),

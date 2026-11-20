@@ -1,6 +1,6 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { fetchProfile, saveProfile } from '../services/api';
+import { fetchProfile, fetchStats, saveProfile, type ApiPlayerStats } from '../services/api';
 import {
   getStoredEmail,
   signOutFromNeon,
@@ -32,10 +32,16 @@ export function ProfileView({
   const [isSaving, setIsSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [stats, setStats] = useState<ApiPlayerStats>({
+    totalSushis: 0,
+    bestDinnerScore: 0,
+    dinnersCount: 0,
+  });
   const authEmail = getStoredEmail();
 
   useEffect(() => {
     const token = ensurePlayerToken();
+    fetchStats(token).then(setStats).catch(() => {});
     fetchProfile(token)
       .then((profile) => {
         if (profile) {
@@ -120,6 +126,21 @@ export function ProfileView({
               {t('profile.changePhoto')}
               <input type="file" accept="image/*" hidden onChange={handleAvatarChange} />
             </label>
+          </div>
+        </div>
+
+        <div className="stats-grid">
+          <div className="stat-card">
+            <strong>{stats.totalSushis}</strong>
+            <span>🍣 Totales</span>
+          </div>
+          <div className="stat-card">
+            <strong>{stats.bestDinnerScore}</strong>
+            <span>🏆 Récord</span>
+          </div>
+          <div className="stat-card">
+            <strong>{stats.dinnersCount}</strong>
+            <span>🥢 Cenas</span>
           </div>
         </div>
 

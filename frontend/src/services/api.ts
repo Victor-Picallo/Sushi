@@ -5,6 +5,7 @@ export type ApiRestaurantMenu = {
   id: number;
   restaurantId: number;
   name: string;
+  schedule: string;
   priceCents: number;
   currency: string;
   notes: string;
@@ -53,7 +54,14 @@ export type ApiHistoryItem = {
   userName: string;
   lastJoinedAt: number;
   isClosed: boolean;
+  restaurantName?: string | null;
   finalPlayers: { name: string; score: number }[];
+};
+
+export type ApiPlayerStats = {
+  totalSushis: number;
+  bestDinnerScore: number;
+  dinnersCount: number;
 };
 
 export async function fetchRestaurantFilters(): Promise<ApiRestaurantFilters> {
@@ -102,7 +110,7 @@ export async function createRestaurant(payload: {
 
 export async function createRestaurantMenu(
   restaurantId: number,
-  payload: { name: string; priceEuros: number; notes?: string },
+  payload: { name: string; schedule?: string; priceEuros: number; notes?: string },
 ): Promise<ApiRestaurantMenu> {
   const token = getStoredAuthToken();
   const res = await fetch(`${backendUrl}/api/restaurants/${restaurantId}/menus`, {
@@ -179,4 +187,49 @@ export async function deleteHistoryRoom(roomId: string, playerToken: string): Pr
     `${backendUrl}/api/history/${encodeURIComponent(roomId)}?playerToken=${encodeURIComponent(playerToken)}`,
     { method: 'DELETE' },
   );
+}
+
+export async function fetchStats(playerToken: string): Promise<ApiPlayerStats> {
+  const res = await fetch(`${backendUrl}/api/stats/${encodeURIComponent(playerToken)}`);
+  if (!res.ok) return { totalSushis: 0, bestDinnerScore: 0, dinnersCount: 0 };
+  return res.json();
+}
+
+export async function updateRestaurantMenu(
+  restaurantId: number,
+  menuId: number,
+  payload: { name: string; schedule?: string; priceEuros: number; notes?: string },
+): Promise<ApiRestaurantMenu> {
+  const token = getStoredAuthToken();
+  const res = await fetch(`${backendUrl}/api/restaurants/${restaurantId}/menus/${menuId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudo actualizar el menú');
+  }
+  return res.json();
+}
+
+export async function deleteRestaurantMenu(restaurantId: number, menuId: number): Promise<void> {
+  const token = getStoredAuthToken();
+  const res = await fetch(`${backendUrl}/api/restaurants/${restaurantId}/menus/${menuId}`, {
+    method: 'DELETE',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error('No se pudo eliminar el menú');
+}
+
+export async function deleteRestaurant(restaurantId: number): Promise<void> {
+  const token = getStoredAuthToken();
+  const res = await fetch(`${backendUrl}/api/restaurants/${restaurantId}`, {
+    method: 'DELETE',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error('No se pudo eliminar el restaurante');
 }

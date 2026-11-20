@@ -1,5 +1,8 @@
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { fetchRestaurants, type ApiRestaurant } from '../services/api';
 import type { RoomHistoryItem, RoomSummary } from '../types/sushi';
+import { CustomSelect } from './CustomSelect';
 import { SushiLogoIcon, TrashIcon } from './Icons';
 
 type LandingViewProps = {
@@ -9,7 +12,7 @@ type LandingViewProps = {
   roomHistory: RoomHistoryItem[];
   roomsSummaryMap: Record<string, RoomSummary>;
   onRoomIdChange: (value: string) => void;
-  onCreateRoom: () => void;
+  onCreateRoom: (restaurantId?: number, menuId?: number) => void;
   onJoinRoom: () => void;
   onRejoinFromHistory: (item: RoomHistoryItem) => void;
   onRemoveFromHistory: (roomId: string) => void;
@@ -28,6 +31,17 @@ export function LandingView({
   onRemoveFromHistory,
 }: LandingViewProps) {
   const { t } = useTranslation();
+  const [restaurants, setRestaurants] = useState<ApiRestaurant[]>([]);
+  const [selectedRestId, setSelectedRestId] = useState('');
+  const [selectedMenuId, setSelectedMenuId] = useState('');
+
+  useEffect(() => {
+    fetchRestaurants()
+      .then((list) => setRestaurants(list))
+      .catch(() => {});
+  }, []);
+
+  const selectedRest = restaurants.find((r) => String(r.id) === selectedRestId);
 
   return (
     <div className="app-shell landing-shell">
@@ -60,8 +74,58 @@ export function LandingView({
             />
           </label>
 
+          {restaurants.length > 0 && (
+            <>
+              <label className="field">
+                <span>Restaurante (opcional al crear)</span>
+                <CustomSelect
+                  value={selectedRestId}
+                  placeholder="Sin restaurante"
+                  options={[
+                    { value: '', label: 'Sin restaurante' },
+                    ...restaurants.map((r) => ({
+                      value: String(r.id),
+                      label: r.city ? `${r.name} (${r.city})` : r.name,
+                    })),
+                  ]}
+                  onChange={(val) => {
+                    setSelectedRestId(val);
+                    setSelectedMenuId('');
+                  }}
+                />
+              </label>
+
+              {selectedRest && selectedRest.menus.length > 0 && (
+                <label className="field">
+                  <span>Menú (para calcular ahorro)</span>
+                  <CustomSelect
+                    value={selectedMenuId}
+                    placeholder="Sin menú"
+                    options={[
+                      { value: '', label: 'Sin menú' },
+                      ...selectedRest.menus.map((m) => ({
+                        value: String(m.id),
+                        label: `${m.name}${m.schedule ? ` (${m.schedule})` : ''} - ${(m.priceCents / 100).toFixed(2)} €`,
+                      })),
+                    ]}
+                    onChange={setSelectedMenuId}
+                  />
+                </label>
+              )}
+            </>
+          )}
+
           <div className="button-row clean-button-row">
-            <button type="button" className="button button-create" onClick={onCreateRoom}>
+            <button
+              type="button"
+              className="button button-create"
+              onClick={() =>
+                onCreateRoom(
+                  selectedRestId ? Number(selectedRestId) : undefined,
+                  selectedMenuId ? Number(selectedMenuId) : undefined,
+                )
+              }
+            >
               {t('landing.createRoom')}
             </button>
             <button type="button" className="button button-primary" onClick={onJoinRoom}>
@@ -82,6 +146,7 @@ export function LandingView({
                 const players = summary?.players ?? item.finalPlayers ?? [];
                 const playersCount = players.length;
                 const playerNames = players.map((p) => p.name).join(', ');
+                const restLabel = summary?.restaurantName || item.restaurantName;
 
                 return (
                   <div key={item.roomId} className="recent-room-card">
@@ -92,6 +157,7 @@ export function LandingView({
                           {isClosed ? t('landing.closed') : t('landing.active')}
                         </span>
                       </div>
+                      {restLabel && <p className="history-meta">📍 {restLabel}</p>}
                       {playersCount > 0 ? (
                         <p className="recent-room-players">
                           <strong>

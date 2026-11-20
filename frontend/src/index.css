@@ -2812,3 +2812,137 @@ select.input:focus {
   grid-template-columns: 1fr 110px;
   gap: 0.6rem;
 }
+
+/* === Stats, Buffet Meter, QR Share, Top Pieces & Admin Menu List === */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+.stat-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 0.75rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.stat-card strong {
+  font-size: 1.25rem;
+  color: #0f172a;
+}
+
+.stat-card span {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.room-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.room-mini-btn {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+
+.room-restaurant-pill {
+  display: inline-block;
+  margin-top: 0.25rem;
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.buffet-meter {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: #475569;
+  background: #f1f5f9;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  display: inline-block;
+}
+
+.buffet-meter.amortized {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.share-modal-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.qr-box {
+  background: #ffffff;
+  padding: 0.85rem;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.top-pieces-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+}
+
+.top-piece-chip {
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.admin-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.admin-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.55rem 0.75rem;
+}
+
+.admin-menu-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  font-size: 0.82rem;
+}
+
+.admin-menu-item .room-mini-btn {
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
+}
