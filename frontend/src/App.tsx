@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { FUNNY_CELEBRATION_ITEMS } from './constants/celebrations';
-import { checkOAuthSession, getStoredAuthToken } from './services/auth';
+import { deleteHistoryRoom, fetchHistory } from './services/api';
+import {
+  checkOAuthSession,
+  getStoredAuthToken,
+  getStoredRole,
+  refreshAuthSession,
+  type UserRole,
+} from './services/auth';
 import { socket } from './services/socket';
 import type {
   AppTab,
@@ -12,10 +19,9 @@ import type {
 } from './types/sushi';
 import { fireConfetti } from './utils/confetti';
 import {
+  clearLegacyLocalHistory,
   ensurePlayerToken,
   generateCreatorToken,
-  loadRoomHistory,
-  saveRoomHistory,
 } from './utils/session';
 import { AuthView } from './components/AuthView';
 import { BottomNav } from './components/BottomNav';
@@ -30,17 +36,8 @@ import { RoomView } from './components/RoomView';
 
 function App() {
   const [authToken, setAuthToken] = useState(() => getStoredAuthToken());
+  const [userRole, setUserRole] = useState<UserRole>(() => getStoredRole());
   const [activeTab, setActiveTab] = useState<AppTab>('room');
-
-  useEffect(() => {
-    if (authToken) return;
-    checkOAuthSession().then((session) => {
-      if (session) {
-        setAuthToken(session.token);
-        setUserName(session.displayName);
-      }
-    });
-  }, [authToken]);
   const [inRoom, setInRoom] = useState(false);
   const [roomId, setRoomId] = useState('');
   const [userName, setUserName] = useState(() => localStorage.getItem('userName') || '');
@@ -53,10 +50,8 @@ function App() {
   const [creatorToken, setCreatorToken] = useState(() => localStorage.getItem('creatorToken') || '');
   const [movedPlayerIds, setMovedPlayerIds] = useState<string[]>([]);
   const [floatingSushi, setFloatingSushi] = useState<{ id: number; x: number; y: number }[]>([]);
-  const [roomHistory, setRoomHistory] = useState<RoomHistoryItem[]>(loadRoomHistory);
+  const [roomHistory, setRoomHistory] = useState<RoomHistoryItem[]>([]);
   const [roomsSummaryMap, setRoomsSummaryMap] = useState<Record<string, RoomSummary>>({});
-  const [celebration, setCelebration] = useState<CelebrationState | null>(null);
-
   const userWantsLandingRef = useRef(false);
   const prevRoomClosedRef = useRef(false);
   const prevOrderRef = useRef<string[]>([]);
@@ -65,8 +60,47 @@ function App() {
   const lastKnownRoomRef = useRef<string | null>(null);
   const rejoinGuardRef = useRef<string | null>(null);
   const prevScoreRef = useRef<number | null>(null);
+  const [celebration, setCelebration] = useState<CelebrationState | null>(null);
 
   const currentUserNameKey = userName.trim().toLowerCase();
+
+  useEffect(() => {
+    clearLegacyLocalHistory();
+  }, []);
+
+  useEffect(() => {
+    if (!authToken) {
+      checkOAuthSession().then((session) => {
+        if (session) {
+          setAuthToken(session.token);
+          setUserName(session.displayName);
+          setUserRole(session.role);
+        }
+      });
+      return;
+    }
+
+    refreshAuthSession().then((session) => {
+      if (session) {
+        setUserName(session.displayName);
+        setUserRole(session.role);
+      }
+    });
+
+    fetchHistory(ensurePlayerToken())
+      .then((items) => {
+        setRoomHistory(
+          items.map((it) => ({
+            roomId: it.roomId,
+            userName: it.userName,
+            lastJoinedAt: it.lastJoinedAt,
+            isClosed: it.isClosed,
+            finalPlayers: it.finalPlayers,
+          })),
+        );
+      })
+      .catch(() => {});
+  }, [authToken]);
 
   const getCurrentPlayer = (players: Player[] = []) => {
     const currentToken = localStorage.getItem('playerToken');
@@ -84,12 +118,10 @@ function App() {
   const addToHistory = (id: string, name: string, token?: string, isClosed = false) => {
     setRoomHistory((prev) => {
       const filtered = prev.filter((item) => item.roomId !== id);
-      const updated = [
+      return [
         { roomId: id, userName: name, creatorToken: token, lastJoinedAt: Date.now(), isClosed },
         ...filtered,
-      ].slice(0, 10);
-      saveRoomHistory(updated);
-      return updated;
+      ].slice(0, 20);
     });
   };
 
@@ -98,8 +130,8 @@ function App() {
     isClosed: boolean,
     players?: { name: string; score: number }[],
   ) => {
-    setRoomHistory((prev) => {
-      const updated = prev.map((item) =>
+    setRoomHistory((prev) =>
+      prev.map((item) =>
         item.roomId === id
           ? {
               ...item,
@@ -107,18 +139,13 @@ function App() {
               finalPlayers: players && players.length > 0 ? players : item.finalPlayers,
             }
           : item,
-      );
-      saveRoomHistory(updated);
-      return updated;
-    });
+      ),
+    );
   };
 
   const removeFromHistory = (id: string) => {
-    setRoomHistory((prev) => {
-      const updated = prev.filter((item) => item.roomId !== id);
-      saveRoomHistory(updated);
-      return updated;
-    });
+    setRoomHistory((prev) => prev.filter((item) => item.roomId !== id));
+    deleteHistoryRoom(id, ensurePlayerToken()).catch(() => {});
   };
 
   const persistRoomSession = (
@@ -132,6 +159,37 @@ function App() {
       localStorage.setItem('creatorToken', nextCreatorToken);
     }
     localStorage.setItem('playerToken', ensurePlayerToken());
+  };
+
+  const emitJoinWithFeedback = (
+    payload: {
+      roomId: string;
+      userName: string;
+      creatorToken: string;
+      playerToken: string;
+    },
+    onSuccess: (room: Room) => void,
+  ) => {
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    let settled = false;
+    const timeout = window.setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        setIsJoining(false);
+        setMessage('No se pudo conectar con el servidor de salas. Inténtalo de nuevo.');
+      }
+    }, 5000);
+
+    socket.emit('join_room', payload, (room: Room) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      setMessage('');
+      onSuccess(room);
+    });
   };
 
   const restoreRoomSession = () => {
@@ -304,6 +362,7 @@ function App() {
   }, [inRoom, roomId, userName, creatorToken]);
 
   useEffect(() => {
+    if (!authToken) return;
     const storedRoomId = localStorage.getItem('roomId');
     const storedUserName = localStorage.getItem('userName');
     if (!storedRoomId || !storedUserName) return;
@@ -314,7 +373,7 @@ function App() {
     setIsJoining(true);
     lastKnownRoomRef.current = storedRoomId;
     restoreRoomSession();
-  }, []);
+  }, [authToken]);
 
   useEffect(() => {
     if (inRoom || roomHistory.length === 0) return;
@@ -340,11 +399,7 @@ function App() {
   }, [movedPlayerIds]);
 
   const createRoom = () => {
-    if (!userName.trim()) {
-      setMessage('Introduce tu nombre para continuar.');
-      return;
-    }
-
+    const activeName = userName.trim() || 'Sushi Lover';
     userWantsLandingRef.current = false;
     const generatedId = Math.floor(1000 + Math.random() * 9000).toString();
     const generatedToken = creatorToken || generateCreatorToken();
@@ -352,17 +407,22 @@ function App() {
     setCreatorToken(generatedToken);
     setRoomId(generatedId);
     setMessage('');
-    persistRoomSession(generatedId, userName, generatedToken);
-    addToHistory(generatedId, userName, generatedToken);
+    persistRoomSession(generatedId, activeName, generatedToken);
+    addToHistory(generatedId, activeName, generatedToken);
     setIsJoining(true);
-    setShowRoomCreatedModal(true);
     setActiveTab('room');
-    socket.emit(
-      'join_room',
-      { roomId: generatedId, userName, creatorToken: generatedToken, playerToken: activePlayerToken },
-      (room: Room) => {
+
+    emitJoinWithFeedback(
+      {
+        roomId: generatedId,
+        userName: activeName,
+        creatorToken: generatedToken,
+        playerToken: activePlayerToken,
+      },
+      (room) => {
         const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
         setRoomData({ ...room, players: sortedPlayers });
+        setShowRoomCreatedModal(true);
         setInRoom(true);
         setIsJoining(false);
       },
@@ -370,11 +430,7 @@ function App() {
   };
 
   const joinRoom = () => {
-    if (!userName.trim()) {
-      setMessage('Introduce tu nombre para continuar.');
-      return;
-    }
-
+    const activeName = userName.trim() || 'Sushi Lover';
     const normalizedRoomId = roomId.trim();
     if (!/^\d{4}$/.test(normalizedRoomId)) {
       setMessage('El ID de la sala debe tener 4 dígitos.');
@@ -384,14 +440,19 @@ function App() {
     userWantsLandingRef.current = false;
     const activePlayerToken = ensurePlayerToken();
     setMessage('');
-    persistRoomSession(normalizedRoomId, userName, creatorToken);
-    addToHistory(normalizedRoomId, userName, creatorToken);
+    persistRoomSession(normalizedRoomId, activeName, creatorToken);
+    addToHistory(normalizedRoomId, activeName, creatorToken);
     setIsJoining(true);
     setActiveTab('room');
-    socket.emit(
-      'join_room',
-      { roomId: normalizedRoomId, userName, creatorToken, playerToken: activePlayerToken },
-      (room: Room) => {
+
+    emitJoinWithFeedback(
+      {
+        roomId: normalizedRoomId,
+        userName: activeName,
+        creatorToken,
+        playerToken: activePlayerToken,
+      },
+      (room) => {
         const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
         setRoomData({ ...room, players: sortedPlayers });
         if (typeof socket.id === 'string') {
@@ -417,15 +478,15 @@ function App() {
     addToHistory(item.roomId, targetName, item.creatorToken || creatorToken);
     setIsJoining(true);
     setActiveTab('room');
-    socket.emit(
-      'join_room',
+
+    emitJoinWithFeedback(
       {
         roomId: item.roomId,
         userName: targetName,
         creatorToken: item.creatorToken || creatorToken,
         playerToken: activePlayerToken,
       },
-      (room: Room) => {
+      (room) => {
         const isClosed = room.isClosed || !!item.isClosed;
         let playersToUse = room.players;
         if (isClosed && item.finalPlayers && item.finalPlayers.length > 0) {
@@ -511,16 +572,19 @@ function App() {
     }
 
     if (activeTab === 'reviews') {
-      return <ReviewsView userName={userName} />;
+      return <ReviewsView userName={userName} isSuperuser={userRole === 'superuser'} />;
     }
 
     if (activeTab === 'profile') {
       return (
         <ProfileView
           userName={userName}
+          role={userRole}
           onUserNameChange={setUserName}
+          onRoleChange={setUserRole}
           onSignedOut={() => {
             setAuthToken('');
+            setUserRole('user');
             setInRoom(false);
             setActiveTab('room');
           }}
@@ -568,6 +632,7 @@ function App() {
           onAuthenticated={(session) => {
             setAuthToken(session.token);
             setUserName(session.displayName);
+            setUserRole(session.role);
           }}
         />
       </div>

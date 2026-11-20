@@ -1,7 +1,3 @@
-import type { RoomHistoryItem } from '../types/sushi';
-
-const HISTORY_STORAGE_KEY = 'sushi_room_history';
-
 export function ensurePlayerToken(): string {
   const savedToken = localStorage.getItem('playerToken');
   if (savedToken && savedToken.trim()) {
@@ -25,21 +21,9 @@ export function generateCreatorToken(): string {
     : `creator-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-export function loadRoomHistory(): RoomHistoryItem[] {
-  try {
-    const saved = localStorage.getItem(HISTORY_STORAGE_KEY);
-    return saved ? (JSON.parse(saved) as RoomHistoryItem[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveRoomHistory(items: RoomHistoryItem[]): void {
-  try {
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(items));
-  } catch (e) {
-    console.error(e);
-  }
+export function clearLegacyLocalHistory(): void {
+  localStorage.removeItem('sushi_room_history');
+  localStorage.removeItem('sushi_local_reviews');
 }
 
 export function getRankLabel(index: number): string {

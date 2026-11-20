@@ -4,7 +4,6 @@ import { fetchProfile, saveProfile } from '../services/api';
 import {
   clearAuthSession,
   getStoredEmail,
-  getStoredRole,
   type UserRole,
 } from '../services/auth';
 import { compressImageToWebp } from '../utils/image';
@@ -13,19 +12,26 @@ import { PrivacyModal } from './PrivacyModal';
 
 type ProfileViewProps = {
   userName: string;
+  role: UserRole;
   onUserNameChange: (name: string) => void;
+  onRoleChange: (role: UserRole) => void;
   onSignedOut: () => void;
 };
 
 const AVATAR_KEY = 'sushi_avatar_preview';
 
-export function ProfileView({ userName, onUserNameChange, onSignedOut }: ProfileViewProps) {
+export function ProfileView({
+  userName,
+  role,
+  onUserNameChange,
+  onRoleChange,
+  onSignedOut,
+}: ProfileViewProps) {
   const { t, i18n } = useTranslation();
   const [avatarUrl, setAvatarUrl] = useState<string>(() => localStorage.getItem(AVATAR_KEY) || '');
   const [pendingAvatarDataUrl, setPendingAvatarDataUrl] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
-  const [role, setRole] = useState<UserRole>(() => getStoredRole());
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const authEmail = getStoredEmail();
 
@@ -42,7 +48,7 @@ export function ProfileView({ userName, onUserNameChange, onSignedOut }: Profile
             localStorage.setItem(AVATAR_KEY, profile.avatarUrl);
           }
           if (profile.role === 'superuser' || profile.role === 'user') {
-            setRole(profile.role);
+            onRoleChange(profile.role);
             localStorage.setItem('sushi_user_role', profile.role);
           }
         }

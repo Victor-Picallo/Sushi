@@ -173,3 +173,10 @@ export async function fetchHistory(playerToken: string): Promise<ApiHistoryItem[
   if (!res.ok) return [];
   return res.json();
 }
+
+export async function deleteHistoryRoom(roomId: string, playerToken: string): Promise<void> {
+  await fetch(
+    `${backendUrl}/api/history/${encodeURIComponent(roomId)}?playerToken=${encodeURIComponent(playerToken)}`,
+    { method: 'DELETE' },
+  );
+}

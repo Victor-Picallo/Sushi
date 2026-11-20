@@ -9,6 +9,7 @@ import {
   type AuthSession,
 } from '../services/auth';
 import { PrivacyModal } from './PrivacyModal';
+import { SushiLogoIcon } from './Icons';
 
 type AuthViewProps = {
   onAuthenticated: (session: AuthSession) => void;
@@ -116,7 +117,7 @@ export function AuthView({ onAuthenticated }: AuthViewProps) {
           <div className="logo-badge-container">
             <div className="sushi-circle-badge">
               <h1 className="app-title">SUSHI</h1>
-              <img src="/favicon.svg" alt="Sushi Icon" className="app-favicon" />
+              <SushiLogoIcon />
               <div className="app-jp">寿司屋</div>
             </div>
           </div>

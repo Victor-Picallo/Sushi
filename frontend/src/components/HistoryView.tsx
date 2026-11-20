@@ -1,4 +1,5 @@
 import type { RoomHistoryItem, RoomSummary } from '../types/sushi';
+import { TrashIcon } from './Icons';
 
 type HistoryViewProps = {
   roomHistory: RoomHistoryItem[];
@@ -18,7 +19,7 @@ export function HistoryView({
       <div className="app-card tab-card">
         <div className="tab-header">
           <h2>Historial de Salas 📜</h2>
-          <p>Tus cenas y recuentos recientes (próximamente sincronizado en PostgreSQL).</p>
+          <p>Tus cenas y recuentos sincronizados con PostgreSQL.</p>
         </div>
 
         {roomHistory.length === 0 ? (
@@ -76,10 +77,10 @@ export function HistoryView({
                     <button
                       type="button"
                       className="remove-history-btn"
-                      title="Quitar del historial"
+                      title="Borrar sala del historial"
                       onClick={() => onRemoveFromHistory(item.roomId)}
                     >
-                      ✕
+                      <TrashIcon />
                     </button>
                   </div>
                 </div>

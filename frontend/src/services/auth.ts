@@ -212,3 +212,14 @@ export async function checkOAuthSession(): Promise<AuthSession | null> {
     return null;
   }
 }
+
+export async function refreshAuthSession(): Promise<AuthSession | null> {
+  const token = getStoredAuthToken();
+  const email = getStoredEmail();
+  if (!token) return null;
+  try {
+    return await syncWithBackend(token, email);
+  } catch {
+    return null;
+  }
+}

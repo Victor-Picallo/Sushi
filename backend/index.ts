@@ -116,6 +116,27 @@ app.get('/api/history', async (req, res) => {
   }
 });
 
+app.delete('/api/history/:roomId', async (req, res) => {
+  try {
+    const roomId = String(req.params.roomId || '').trim();
+    const playerToken = String(req.query.playerToken || '').trim();
+    if (!roomId || !playerToken) {
+      res.status(400).json({ error: 'Faltan roomId o playerToken.' });
+      return;
+    }
+    await deletePlayerFromDb(roomId, playerToken);
+    const remaining = await loadRoomFromDb(roomId);
+    if (remaining && remaining.players.length === 0) {
+      delete rooms[roomId];
+      await deleteRoomFromDb(roomId);
+    }
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('DELETE /api/history/:roomId error:', error);
+    res.status(500).json({ error: 'No se pudo eliminar la sala del historial.' });
+  }
+});
+
 app.get('/api/restaurants/filters', async (_req, res) => {
   try {
     if (!db) {

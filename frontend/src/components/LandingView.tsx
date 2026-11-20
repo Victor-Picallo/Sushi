@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { RoomHistoryItem, RoomSummary } from '../types/sushi';
+import { SushiLogoIcon, TrashIcon } from './Icons';
 
 type LandingViewProps = {
   userName: string;
@@ -35,7 +36,7 @@ export function LandingView({
           <div className="logo-badge-container">
             <div className="sushi-circle-badge">
               <h1 className="app-title">SUSHI</h1>
-              <img src="/favicon.svg" alt="Sushi Icon" className="app-favicon" />
+              <SushiLogoIcon />
               <div className="app-jp">寿司屋</div>
             </div>
           </div>
@@ -114,10 +115,10 @@ export function LandingView({
                       <button
                         type="button"
                         className="remove-history-btn"
-                        title="Quitar del historial"
+                        title="Borrar sala del historial"
                         onClick={() => onRemoveFromHistory(item.roomId)}
                       >
-                        ✕
+                        <TrashIcon />
                       </button>
                     </div>
                   </div>

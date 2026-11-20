@@ -11,17 +11,16 @@ import {
   type ApiRestaurantFilters,
   type ApiReview,
 } from '../services/api';
-import { getStoredRole } from '../services/auth';
 import { compressImageToWebp } from '../utils/image';
 import { ensurePlayerToken } from '../utils/session';
 
 type ReviewsViewProps = {
   userName: string;
+  isSuperuser: boolean;
 };
 
-export function ReviewsView({ userName }: ReviewsViewProps) {
+export function ReviewsView({ userName, isSuperuser }: ReviewsViewProps) {
   const { t } = useTranslation();
-  const isSuperuser = getStoredRole() === 'superuser';
 
   const [reviews, setReviews] = useState<ApiReview[]>([]);
   const [restaurants, setRestaurants] = useState<ApiRestaurant[]>([]);
@@ -193,44 +192,46 @@ export function ReviewsView({ userName }: ReviewsViewProps) {
           <p>{t('reviews.subtitle')}</p>
         </div>
 
-        <div className="geo-filter-row">
-          <select
-            className="input geo-select"
-            value={filterCountry}
-            onChange={(e) => setFilterCountry(e.target.value)}
-          >
-            <option value="">{t('reviews.allCountries')}</option>
-            {filters.countries.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-          <select
-            className="input geo-select"
-            value={filterProvince}
-            onChange={(e) => setFilterProvince(e.target.value)}
-          >
-            <option value="">{t('reviews.allProvinces')}</option>
-            {filters.provinces.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-          <select
-            className="input geo-select"
-            value={filterCity}
-            onChange={(e) => setFilterCity(e.target.value)}
-          >
-            <option value="">{t('reviews.allCities')}</option>
-            {filters.cities.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
+        {(restaurants.length > 0 || filters.countries.length > 0) && (
+          <div className="geo-filter-row">
+            <select
+              className="input"
+              value={filterCountry}
+              onChange={(e) => setFilterCountry(e.target.value)}
+            >
+              <option value="">{t('reviews.allCountries')}</option>
+              {filters.countries.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <select
+              className="input"
+              value={filterProvince}
+              onChange={(e) => setFilterProvince(e.target.value)}
+            >
+              <option value="">{t('reviews.allProvinces')}</option>
+              {filters.provinces.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+            <select
+              className="input"
+              value={filterCity}
+              onChange={(e) => setFilterCity(e.target.value)}
+            >
+              <option value="">{t('reviews.allCities')}</option>
+              {filters.cities.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <label className="field">
           <span>Restaurante</span>
