@@ -2946,3 +2946,7 @@ select.input:focus {
   background: #f8fafc;
   color: #0f172a;
 }
+
+.auth-lang-wrap {
+  width: 112px;
+}

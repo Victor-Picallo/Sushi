@@ -8,8 +8,9 @@ import {
   signUpWithEmail,
   type AuthSession,
 } from '../services/auth';
-import { PrivacyModal } from './PrivacyModal';
+import { CustomSelect } from './CustomSelect';
 import { SushiLogoIcon } from './Icons';
+import { PrivacyModal } from './PrivacyModal';
 
 type AuthViewProps = {
   onAuthenticated: (session: AuthSession) => void;
@@ -102,15 +103,16 @@ export function AuthView({ onAuthenticated }: AuthViewProps) {
     <div className="app-shell landing-shell">
       <div className="app-card landing-card auth-gate-card">
         <div className="auth-lang-bar">
-          <select
-            className="input auth-lang-select"
-            aria-label={t('profile.language')}
-            value={i18n.resolvedLanguage || 'es'}
-            onChange={(e) => i18n.changeLanguage(e.target.value)}
-          >
-            <option value="es">🇪🇸 ES</option>
-            <option value="en">🇬🇧 EN</option>
-          </select>
+          <div className="auth-lang-wrap">
+            <CustomSelect
+              value={i18n.resolvedLanguage || 'es'}
+              options={[
+                { value: 'es', label: '🇪🇸 ES' },
+                { value: 'en', label: '🇬🇧 EN' },
+              ]}
+              onChange={(lang) => i18n.changeLanguage(lang)}
+            />
+          </div>
         </div>
 
         <div className="app-header">
